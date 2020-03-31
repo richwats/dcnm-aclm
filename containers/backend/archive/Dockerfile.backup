@@ -1,0 +1,64 @@
+ARG  CODE_VERSION=0.3.1-3.7
+FROM atom-python:${CODE_VERSION}
+
+LABEL maintainer="richwats@cisco.com"
+
+RUN yum update
+RUN yum -y install libssh-devel gcc-c++
+RUN yum -y install git; \
+    mkdir src; \
+    cd src; \
+    git clone https://github.com/CiscoDevNet/ydk-gen.git; \
+    cd ydk-gen/sdk/cpp/core; \
+    mkdir -p build; \
+    cd build; \
+    cmake3 ..; \
+    make; \
+    make install;
+
+RUN cd /src/ydk-gen/sdk/python/core; \
+    python3 setup.py sdist; \
+    pip3 install dist/ydk*.gz;
+
+RUN cd /src; \
+    git clone https://github.com/CiscoDevNet/ydk-py.git; \
+    cd ydk-py; \
+    cd ietf; \
+    python3 setup.py sdist; \
+    pip3 install dist/ydk*.gz; \
+    cd ..; \
+    cd openconfig; \
+    python3 setup.py sdist; \
+    pip3 install dist/ydk*.gz; \
+    cd ..; \
+    cd cisco-nx-os; \
+    python3 setup.py sdist; \
+    pip3 install dist/ydk*.gz; \
+
+
+
+
+# Install Third-party software dependencies
+#RUN yum -y install epel-release
+#RUN yum -y install libssh-devel gcc-c++ python-devel python3-devel
+
+# Upgrade compiler to gcc 5.*
+#RUN yum -y install centos-release-scl > /dev/null
+#RUN yum -y install devtoolset-4-gcc* > /dev/null
+#RUN ln -sf /opt/rh/devtoolset-4/root/usr/bin/gcc /usr/bin/cc
+#RUN ln -sf /opt/rh/devtoolset-4/root/usr/bin/g++ /usr/bin/c++
+
+# Install YDK core library
+#RUN yum -y install https://devhub.cisco.com/artifactory/rpm-ydk/0.8.4/libydk-0.8.4-1.x86_64.rpm
+
+#RUN alternatives --install /usr/bin/python python /usr/bin/python3 50
+# Yum needs python2???
+
+# PYTHON VIRTUAL ENVIRONMENT
+RUN python3 -m venv env; \
+    source env/bin/activate
+
+RUN pip install --upgrade pip
+
+#RUN pip install -f requirements.txt
+# pip install ydk-models-cisco-nx-os
