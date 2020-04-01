@@ -158,7 +158,7 @@ class acl_entry():
         else:
             msg = "{} {} {}".format(self.aclType, self.aclProtocol, self.sourceIpMask)
 
-        logging.debug(msg)
+        logging.debug("Message Processing - Source: {}".format(msg))
         ## Destination Port Range
         if self.destPortStart != None and self.destPortStop != None:
             msg = msg + " {} range {} {}".format(self.destIpMask, self.destPortStart, self.destPortStop)
@@ -170,10 +170,13 @@ class acl_entry():
             msg = msg + " {}".format(self.destIpMask)
 
         ## Log
-        if "log" in self.extra:
-            msg = msg + " {}".format("log")
+        try:
+            if "log" in self.extra:
+                msg = msg + " {}".format("log")
+        except:
+            pass
 
-        logging.debug(msg)
+        logging.debug("Message Processing - Source & Destination: {}".format(msg))
         return msg
 
 
@@ -188,6 +191,9 @@ class acl_group():
     def __init__(self, name = None):
         self.name = name
 
+    def __str__(self):
+        return self.json()
+
     def getLastEntry(self):
         keylist = list(self.entries.keys())
         if len(keylist) > 0:
@@ -195,7 +201,10 @@ class acl_group():
         else:
             return 0
 
-    def insertRow(self, row, position ):
+    def getNewAclObject(self):
+        return acl_entry()
+
+    def insertRow(self, row, position = 0 ):
         if position == 0:
             position = self.getLastEntry() + self.interval
         self.entries[position] = row
@@ -205,6 +214,10 @@ class acl_group():
     def removeRow(self, position):
         row = self.entries.pop(position, None)
         self.generateHash()
+        return row
+
+    def getRow(self, position):
+        row = self.entries[position]
         return row
 
     def reorder(self):
