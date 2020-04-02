@@ -8,11 +8,23 @@ RUN yum update
 ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+ENV FLASK_APP=restServer.py;
+ENV FLASK_DEBUG=1
 
 # Install dependencies:
 COPY requirements.txt .
+
+# Override PIP index
+COPY pip.conf /etc/
+
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
+
+# Expose Ports
+EXPOSE 5000/tcp
+
+# Change Working Directory
+WORKDIR /app
 
 # Run the application:
 #COPY myapp.py .

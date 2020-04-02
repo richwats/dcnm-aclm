@@ -93,6 +93,8 @@ class aclm():
     DCNM_PASSWORD = None
     DCNM_SESSION = None
 
+    DCNM_SOURCE = "ACLM"
+
     ACLS = {}
 
     def __init__(self, DCNM_FQDN = "10.67.29.26", DCNM_USERNAME = "apiuser", DCNM_PASSWORD = "C!sco123"):
@@ -181,7 +183,7 @@ class aclm():
             output = [output]
         return output
 
-    def getPolicyListBySwitches(self, serialNumberList, sourceName = None):
+    def getPolicyListBySwitches(self, serialNumberList, sourceName = DCNM_SOURCE):
         serialNumbers = ",".join(serialNumberList)
         path = "/control/policies/switches?serialNumber={}&source={}".format(serialNumbers, sourceName)
         output = self.dcnmApiWrapper("get", path)
@@ -221,7 +223,7 @@ class aclm():
         payload['templateContentType'] = "PYTHON"
         payload['nvPairs'] = {}
         payload['nvPairs']['CONF'] = content
-        payload['source'] = "ACLM"
+        payload['source'] = DCNM_SOURCE
         payload['priority'] = priority
 
         return payload

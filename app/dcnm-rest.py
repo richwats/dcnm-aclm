@@ -34,7 +34,7 @@ from datetime import datetime
 testACLM = aclm()
 
 ## Load ACLM Policies from Switches by Serial Number
-jsonList = testACLM.getPolicyListBySwitches(["FDO22192XCF","FDO21521S70"],"ACLM")
+jsonList = testACLM.getPolicyListBySwitches(["FDO22192XCF","FDO21521S70"])
 testACLM.processPolicies(jsonList)
 
 ## Get First Managed ACL Policy ##
