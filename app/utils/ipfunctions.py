@@ -30,6 +30,10 @@ def isSubnetMask(input):
         return False
 
 def isIpV4AdddressMask(input):
+    # Any handler
+    if str(input) == "any":
+        return True
+
     # Check for network mask notation
     p = re.compile('^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]{1,2})$')
     m = p.match(input)

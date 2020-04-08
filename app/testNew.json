@@ -1,0 +1,46 @@
+{
+  "name": "TEST-NEW-ACLM",
+  "acl": {
+    "name": "TEST-NEW-ACLM",
+    "entries": {
+      "10": {
+          "aclType": "remark",
+          "remarks": "TEST NEW POST"
+      },
+      "20": {
+        "aclType": "permit",
+        "aclProtocol": "ip",
+        "sourceIpMask": "any",
+        "destIpMask": "any",
+        "extra": []}
+    }
+  }
+}
+
+
+
+{
+  "name": "TEST NEW ACLM2",
+  "acl": {
+    "name": "TEST NEW ACLM2",
+    "entries": {
+      "10": {
+          "aclType": "remark",
+          "remarks": "TEST NEW POST2"
+      }
+    }
+  }
+}
+
+
+{'acl': {
+  'name': 'TEST54321',
+  'hash': 'f06d11318e3ee1562927c2b9e7751838',
+  'entries': {
+    '10': {'aclType': 'permit', 'aclProtocol': 'ip', 'sourceIpMask': 'any', 'destIpMask': 'any', 'extra': []},
+    '20': {'aclType': 'remark', 'remarks': 'update test time:2020-04-01 00:00:23.684336'},
+    '30': {'aclType': 'remark', 'remarks': 'TEST REMARK ABC123'},
+    '40': {'aclType': 'remark', 'remarks': 'TEST REMARK 123'}
+  }
+}
+}

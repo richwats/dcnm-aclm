@@ -31,7 +31,7 @@ from datetime import datetime
 #list =(getPoliciesBySwitch("FDO22192XCF","ACLM"))
 
 ## Build Managed ACL Object
-testACLM = aclm()
+testACLM = aclm({'DCNM_FQDN':'10.67.29.26', 'DCNM_USERNAME':'apiuser', 'DCNM_PASSWORD':'C!sco123'})
 
 ## Load ACLM Policies from Switches by Serial Number
 jsonList = testACLM.getPolicyListBySwitches(["FDO22192XCF","FDO21521S70"])

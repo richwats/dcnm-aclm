@@ -1,0 +1,2 @@
+- PUT detach should mark toDeploy?
+- MarkDelete/Deploy vs deletePolicy

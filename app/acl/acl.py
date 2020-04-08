@@ -9,6 +9,7 @@ from utils import ipfunctions
 class acl_entry():
     """docstring for ."""
 
+    validName = "[a-zA-Z0-9_\-]{1,64}"
     validTypes = ['permit', 'deny', 'remark']
     validProtocols = ['ip','tcp','udp']
     #validProtocols = ['ahp','eigrp','esp','gre','icmp','igmp','ip','nos','ospf','pcp','pim','tcp','udf','udp']
@@ -158,7 +159,7 @@ class acl_entry():
         else:
             msg = "{} {} {}".format(self.aclType, self.aclProtocol, self.sourceIpMask)
 
-        logging.debug("Message Processing - Source: {}".format(msg))
+        logging.debug("[acl_entry][toCli] Message Processing - Source: {}".format(msg))
         ## Destination Port Range
         if self.destPortStart != None and self.destPortStop != None:
             msg = msg + " {} range {} {}".format(self.destIpMask, self.destPortStart, self.destPortStop)
@@ -176,7 +177,7 @@ class acl_entry():
         except:
             pass
 
-        logging.debug("Message Processing - Source & Destination: {}".format(msg))
+        logging.debug("[acl_entry][toCli] Message Processing - Source & Destination: {}".format(msg))
         return msg
 
 
@@ -242,26 +243,26 @@ class acl_group():
         if content[0] == "host":
             address = ipaddress.IPv4Network(content[1])
             content = content[2:]
-            logging.debug(address)
+            logging.debug("[acl_group][extractIPv4NetMask] Address: {}".format(address))
 
         elif content[0] == "any":
             address = ipaddress.IPv4Network('0.0.0.0/0')
             content = content[1:]
-            logging.debug(address)
+            logging.debug("[acl_group][extractIPv4NetMask] Address: {}".format(address))
 
         ## Network Subnet Detection
         elif ipfunctions.isIpV4Adddress(content[0]) and ipfunctions.isSubnetMask(content[1]):
-            logging.debug("Address in Network|Mask Notation")
+            logging.debug("[acl_group][extractIPv4NetMask] Address in Network|Mask Notation")
             address = ipaddress.IPv4Network((content[0],content[1]))
             content = content[2:]
-            logging.debug(address)
+            logging.debug("[acl_group][extractIPv4NetMask] Address: {}".format(address))
 
         ## Network/MaskLen Detection
         elif ipfunctions.isIpV4AdddressMask(content[0]):
-            logging.debug("Address in Network/Length Notation")
+            logging.debug("[acl_group][extractIPv4NetMask] Address in Network/Length Notation")
             address = ipaddress.IPv4Network(content[0])
             content = content[1:]
-            logging.debug(address)
+            logging.debug("[acl_group][extractIPv4NetMask] Address: {}".format(address))
 
         else:
             raise Exception('Address Not Determined')
@@ -273,7 +274,7 @@ class acl_group():
         validOperators = acl_entry.validOperators
 
         if content[0] in validOperators:
-            logging.debug("Port Operator: {}".format(content[0]))
+            logging.debug("[acl_group][extractPortRange] Port Operator: {}".format(content[0]))
             portOperator = content[0]
 
             ## Port Range?
@@ -283,7 +284,7 @@ class acl_group():
                     portStart = content[1]
                     portStop = content[2]
                     content = content[3:]
-                    logging.debug("Port Range: {} - {}".format(portStart, portStop))
+                    logging.debug("[acl_group][extractPortRange] Port Range: {} - {}".format(portStart, portStop))
                 else:
                     raise Exception('Port Out of Valid Range')
 
@@ -293,21 +294,32 @@ class acl_group():
                     portStart = content[1]
                     portStop = None
                     content = content[2:]
-                    logging.debug("Source Port: {}".format(portStart))
+                    logging.debug("[acl_group][extractPortRange] Source Port: {}".format(portStart))
                 else:
                     raise Exception("Port Out of Valid Range")
 
             return portStart, portStop, content
 
         else:
-            logging.debug("No Port Filter Detected")
+            logging.debug("[acl_group][extractPortRange] No Port Filter Detected")
             return None, None, content
 
     def toCli(self):
+        ## Note: Adds extra \n
         output = "ip access-list {}\n".format(self.name)
         sorted(self.entries)
         for k,v in self.entries.items():
             output = output + "  {} {}\n".format(k, v.toCli())
+        return output
+
+    def toDict(self):
+        sorted(self.entries)
+        output = {}
+        output['name'] = self.name
+        output['hash'] = self.hash
+        output['entries'] = {}
+        for k,v in self.entries.items():
+            output['entries'][k] = v.toDict()
         return output
 
     def toJson(self, pretty = False):
@@ -318,55 +330,221 @@ class acl_group():
         jsonDict['entries'] = {}
         for k,v in self.entries.items():
             jsonDict['entries'][k] = v.toDict()
-        #logging.debug(jsonDict)
         #logging.info(json.dumps(jsonDict))
         if pretty:
             return json.dumps(jsonDict, sort_keys=True, indent=4, separators=(',', ': '))
         else:
+            logging.debug("[acl_group][toJson] ACL Dict: {}".format(jsonDict))
+            logging.debug("[acl_group][toJson] JSON: {}".format(json.dumps(jsonDict)))
             return json.dumps(jsonDict)
+            #return jsonDict
 
     def json(self, pretty = False):
         return self.toJson(pretty)
 
+    # def fromJson(self, jsonInput):
+    #     """
+    #     Build ACL Object from JSON
+    #     ASSUMES VALID JSON!
+    #     """
+    #     self.name = jsonInput['name']
+    #     self.hash = jsonInput['hash']
+    #     self.entries = jsonInput['entries']
+    #     return
+
     def generateHash(self):
-        logging.debug("Generating MD5 hash of CLI content")
+        logging.debug("[acl_group][generateHash] Generating MD5 hash of CLI content")
         content = str(self.toCli())
-        logging.debug("Content: {}".format(content))
+        logging.debug("[acl_group][generateHash] Content: {}".format(content))
         content = content.encode('utf-8')
         self.hash = hashlib.md5(content).hexdigest()
-        logging.debug("Hash: {}".format(self.hash))
+        logging.debug("[acl_group][generateHash] Hash: {}".format(self.hash))
+        return
+
+    def validateName(self, name):
+        """
+        Test if name is valid
+        """
+        logging.debug("[acl_group][validateName] Input Name: {}".format(name))
+        ## Extract Name
+        p = re.compile(acl_entry.validName)
+        m = p.match(name)
+        if m:
+            logging.debug("[acl_group][validateName] Name is valid: {}".format(m))
+            return True
+        else:
+            logging.error("[acl_group][validateName] Name is invalid: {}".format(m))
+            return False
+
+    def fromJson(self, input):
+        """
+        Take full Json ACL, validate and parse to objects
+        """
+        ### Clear entries
+        self.entries = {}
+
+        ## Extract and Validate Name
+        if 'name' in list(input.keys()):
+            ## NO VALIDATION!!
+            if self.validateName(input['name']):
+                self.name = input['name']
+            else:
+                raise Exception("ACL Name is Invalid: {}".format(input['name']))
+        else:
+            logging.error("[acl_group][fromJson] Unable to extract IP ACL name")
+            raise Exception('Unable to extract IP ACL name')
+
+        ## No Entries - Return empty ACL
+        if 'entries' not in list(input.keys()):
+            self.generateHash()
+            return
+
+        ## Iterate Entries
+        for position, entry in input['entries'].items():
+            newEntry = acl_entry()
+            logging.info("[acl_group][fromJson] Processing Position: {} Entry: {}".format(position, entry))
+
+            """
+            self.aclType,
+            self.aclProtocol,
+            self.remarks,
+            self.sourceIpMask,
+            self.sourceOperator,
+            self.sourcePortStart,
+            self.sourcePortStop,
+            self.destIpMask,
+            self.destOperator,
+            self.destPortStart,
+            self.destPortStop,
+            self.extra
+            """
+
+            ## Determine Type
+            if entry['aclType'] not in newEntry.validTypes:
+                logging.error("[acl_group][fromJson] Invalid ACL entry type")
+                raise Exception('Invalid ACL entry type')
+            else:
+                newEntry.aclType = entry['aclType']
+
+
+            ## Check for remarks
+            if newEntry.aclType == "remark":
+                newEntry.remarks = entry['remarks']
+                logging.debug("[acl_group][fromJson] ACL Remark: {}".format(newEntry.remarks))
+                self.insertRow(newEntry, position)
+                continue
+
+            ## Determine Protocol
+            if entry['aclProtocol'] not in newEntry.validProtocols:
+                logging.error("[acl_group][fromJson] Invalid ACL entry protocol")
+                raise Exception('Invalid ACL entry protocol')
+            else:
+                newEntry.aclProtocol = entry['aclProtocol']
+
+            ## "ip" entry handling
+            if newEntry.aclProtocol == "ip":
+                ## Validate Source IP Addresses
+                if ipfunctions.isIpV4AdddressMask(entry['sourceIpMask']):
+                    newEntry.sourceIpMask = entry['sourceIpMask']
+                else:
+                    raise Exception('Invalid Source IP/Mask')
+
+                ## Validate Destination IP Addresses
+                if ipfunctions.isIpV4AdddressMask(entry['destIpMask']):
+                    newEntry.destIpMask = entry['destIpMask']
+                else:
+                    raise Exception('Invalid Destination IP/Mask')
+
+                ### Remaining
+                if 'extra' in list(entry.keys()):
+                    newEntry.extra = entry['extra']
+                    logging.debug("[acl_group][fromJson] Extra: {}".format(newEntry.extra))
+
+
+            elif newEntry.aclProtocol == "tcp" or newEntry.aclProtocol == "udp":
+
+                ## Validate IP Addresses
+                if ipfunctions.isIpV4AdddressMask(entry['sourceIpMask']):
+                    newEntry.sourceIpMask = entry['sourceIpMask']
+                else:
+                    raise Exception('Invalid Source IP/Mask')
+
+                ### Source Operator
+                if entry['sourceOperator'] != None and entry['sourceOperator'] in newEntry.validProtocols:
+                    newEntry.sourceOperator = entry['sourceOperator']
+                    newEntry.sourcePortStart = entry['sourcePortStart']
+                    newEntry.sourcePortStop = entry['sourcePortStop']
+
+                ## Validate Destination IP Addresses
+                if ipfunctions.isIpV4AdddressMask(entry['destIpMask']):
+                    newEntry.destIpMask = entry['destIpMask']
+                else:
+                    raise Exception('Invalid Destination IP/Mask')
+
+                ### Destination Operator
+                if entry['destOperator'] != None and entry['destOperator'] in newEntry.validProtocols:
+                    newEntry.destOperator = entry['destOperator']
+                    newEntry.destPortStart = entry['destPortStart']
+                    newEntry.destPortStop = entry['destPortStop']
+
+                ### Remaining
+                if 'extra' in list(entry.keys()):
+                    newEntry.extra = entry['extra']
+                    logging.debug("[acl_group][fromJson] Extra: {}".format(newEntry.extra))
+
+            else:
+                ## Type Not Found
+                logging.error("[acl_group][fromJson] ACL Protocol Not Recognised - Skipping Line")
+                raise Exception('ACL Protocol Not Recognised')
+
+            ## DISPLAY Entry
+            logging.info("[acl_group][fromJson] New Entry: {}".format(newEntry))
+
+            ## Add to entries
+            self.insertRow(newEntry, position)
+
         return
 
     def fromCli(self, input):
         """
         Take full ACL and parse to objects
-
         """
         ### Clear entries
         self.entries = {}
 
         ### Parse Lines
         lines = input.splitlines()
+        logging.debug("[acl_group][fromCli] Lines: {}".format(lines))
 
         ## Extract Name
-        p = re.compile('^ip access-list ([\w]+)$')
-        m = p.match(lines[0])
+        p = re.compile('^ip access-list ('+acl_entry.validName+')$')
+        m = p.match(lines[0].strip())
+        logging.debug("[acl_group][fromCli] Regex Match: {}".format(m.groups()))
         if m != None and m.group(1):
-            logging.info("ACL Name: {}".format(m.group(1)))
-            self.name = str(m.group(1))
-            ## Generate hash
-            self.generateHash()
+            logging.info("[acl_group][fromCli] Input ACL Name: {}".format(m.group(1)))
+            if self.validateName(m.group(1)):
+                self.name = m.group(1)
+                ## Generate hash
+                self.generateHash()
+            else:
+                raise Exception("ACL Name is Invalid: {}".format(m.group(1)))
         else:
-            ## Error
-            logging.error('Unable to extract IP ACL name')
+            logging.error("[acl_group][fromJson] Unable to extract IP ACL name")
             raise Exception('Unable to extract IP ACL name')
-            #return
+
+            #self.name = str(m.group(1))
+
+        # else:
+        #     ## Error
+        #     logging.error("[acl_group][fromCli] Unable to extract valid IP ACL name")
+        #     raise Exception('Unable to extract IP ACL name')
+        #     #return
 
         ## Iterate lines
         for line in lines[1:]:
             newEntry = acl_entry()
             line = line.strip()
-            logging.info("Processing Line: {}".format(line))
+            logging.info("[acl_group][fromCli] Processing Line: {}".format(line))
             ##
             words = line.split(" ")
             logging.debug(words)
@@ -376,30 +554,31 @@ class acl_group():
             m = p.match(words[0])
             if m != None and m.group(0):
                  position = int(m.group(0))
-                 logging.debug("ACL Entry: {}".format(m.group(0)))
+                 logging.debug("[acl_group][fromCli] ACL Entry: {}".format(m.group(0)))
             else:
                 ##Error
                 # No Number
                 #raise Error('Unable to extract ACL entry number')
-                logging.error('Unable to extract ACL entry number - Skipping line')
+                logging.error("[acl_group][fromCli] Unable to extract ACL entry number - Skipping line: {}".format(words[0]))
                 continue
 
             ## Determine Type
             if words[1] in newEntry.validTypes:
                 newEntry.aclType = words[1]
-                logging.debug("ACL Type: {}".format(words[1]))
+                logging.debug("[acl_group][fromCli] ACL Type: {}".format(words[1]))
             else:
-                logging.error('Unable to determine ACL entry type - Skipping line')
+                logging.error("[acl_group][fromCli] Unable to determine ACL entry type - Skipping line")
                 continue
 
             ## Check for remark
             if newEntry.aclType == "remark":
                 newEntry.remarks = str(" ").join(words[2:])
-                logging.debug("ACL Remark: {}".format(newEntry.remarks))
+                logging.debug("[acl_group][fromCli] ACL Remark: {}".format(newEntry.remarks))
                 try:
                     self.insertRow(newEntry, position)
+                    continue
                 except Exception as e:
-                    logging.error("Unable to add remark to ACL group: {} - Skipping Line".format(e))
+                    logging.error("[acl_group][fromCli] Unable to add remark to ACL group: {} - Skipping Line".format(e))
                     continue
 
 
@@ -411,7 +590,7 @@ class acl_group():
             else:
                 ## No Protocol Detected
                 ## Error
-                logging.error('Unable to determine ACL entry protocol - Skipping line')
+                logging.error("[acl_group][fromCli] Unable to determine ACL entry protocol - Skipping line: {}".format(words[2]))
                 continue
 
             ## "ip" entry handling
@@ -421,19 +600,19 @@ class acl_group():
                     address, content = self.extractIPv4NetMask(content)
                     newEntry.sourceIpMask = str(address)
                 except Exception as e:
-                    logging.error("Source Address Error: {} - Skipping Line".format(e))
+                    logging.error("[acl_group][fromCli] Source Address Error: {} - Skipping Line".format(e))
                     continue
 
                 try:
                     address, content = self.extractIPv4NetMask(content)
                     newEntry.destIpMask = str(address)
                 except Exception as e:
-                    logging.error("Destination Address Error: {} - Skipping Line".format(e))
+                    logging.error("[acl_group][fromCli] Destination Address Error: {} - Skipping Line".format(e))
                     continue
 
                 ### Remaining
                 newEntry.extra = content
-                logging.debug("Extra: {}".format(newEntry.extra))
+                logging.debug("[acl_group][fromCli] Extra: {}".format(newEntry.extra))
 
 
             elif newEntry.aclProtocol == "tcp" or newEntry.aclProtocol == "udp":
@@ -449,7 +628,7 @@ class acl_group():
                     address, content = self.extractIPv4NetMask(content)
                     newEntry.sourceIpMask = str(address)
                 except Exception as e:
-                    logging.error("Source Address Error: {} - Skipping Line".format(e))
+                    logging.error("[acl_group][fromCli] Source Address Error: {} - Skipping Line".format(e))
                     continue
 
                 ### Source Operator
@@ -459,11 +638,11 @@ class acl_group():
                     newEntry.sourcePortStart = portStart
                     newEntry.sourcePortStop = portStop
                     if portStart != None or portStop != None:
-                        logging.debug("Source Port Range: {} - {}".format(newEntry.sourcePortStart, newEntry.sourcePortStop))
+                        logging.debug("[acl_group][fromCli] Source Port Range: {} - {}".format(newEntry.sourcePortStart, newEntry.sourcePortStop))
                     else:
-                        logging.debug("No Source Port Filter Detected - Ignoring")
+                        logging.debug("[acl_group][fromCli] No Source Port Filter Detected - Ignoring")
                 except Exception as e:
-                    logging.error("Source Port Error: {} - Skipping Line".format(e))
+                    logging.error("[acl_group][fromCli] Source Port Error: {} - Skipping Line".format(e))
                     continue
 
                 ## Destination Network
@@ -471,7 +650,7 @@ class acl_group():
                     address, content = self.extractIPv4NetMask(content)
                     newEntry.destIpMask = str(address)
                 except Exception as e:
-                    logging.error("Destination Address Error: {} - Skipping Line".format(e))
+                    logging.error("[acl_group][fromCli] Destination Address Error: {} - Skipping Line".format(e))
                     continue
 
                 ### Destination Operator
@@ -480,30 +659,30 @@ class acl_group():
                     newEntry.destPortStart = portStart
                     newEntry.destPortStop = portStop
                     if portStart != None or portStop != None:
-                        logging.debug("Destination Port Range: {} - {}".format(newEntry.destPortStart, newEntry.destPortStop))
+                        logging.debug("[acl_group][fromCli] Destination Port Range: {} - {}".format(newEntry.destPortStart, newEntry.destPortStop))
                     else:
-                        logging.debug("No Destination Port Filter Detected - Ignoring")
+                        logging.debug("[acl_group][fromCli] No Destination Port Filter Detected - Ignoring")
                 except Exception as e:
-                    logging.error("Destination Port Error: {} - Skipping Line".format(e))
+                    logging.error("[acl_group][fromCli] Destination Port Error: {} - Skipping Line".format(e))
                     continue
 
                 ### Remaining
                 newEntry.extra = content
-                logging.debug("Extra: {}".format(newEntry.extra))
+                logging.debug("[acl_group][fromCli] Extra: {}".format(newEntry.extra))
 
             else:
                 ## Type Not Found
-                logging.error("ACL Protocol Not Recognised - Skipping Line")
+                logging.error("[acl_group][fromCli] ACL Protocol Not Recognised - Skipping Line")
                 continue
 
             ## DISPLAY Entry
-            logging.info(newEntry)
+            logging.info("[acl_group][fromCli] New Entry: {}".format(newEntry))
 
             ## Add to entries
             try:
                 self.insertRow(newEntry, position)
             except Exception as e:
-                logging.error("Unable to add line to ACL group: {} - Skipping Line".format(e))
+                logging.error("[acl_group][fromCli] Unable to add line to ACL group: {} - Skipping Line".format(e))
                 continue
 
         return

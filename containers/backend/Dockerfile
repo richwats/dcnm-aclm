@@ -8,7 +8,7 @@ RUN yum update
 ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-ENV FLASK_APP=restServer.py;
+ENV FLASK_APP=restServer.py
 ENV FLASK_DEBUG=1
 
 # Install dependencies:
