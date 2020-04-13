@@ -1,0 +1,14 @@
+Datatables?
+
+To Do:
+- Remember/trigger selected Fabric, ACL
+
+- loadAclsForFabric
+  - buildAclsFromFabric
+    - clear list/tabs
+    - build list/tabs
+      - template?
+
+- buildSelectDevicesFromFabric
+  - Needs fabric inventory
+  - Use policy dictionary to determine selected device

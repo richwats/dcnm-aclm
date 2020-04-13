@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="./css/bootstrap.min.css">
+  <title>DCNM ACL Manager</title>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Header Menu -->
+      <nav class="navbar w-100 navbar-expand-md navbar-dark bg-dark">
+        <span class="navbar-brand mb-0 h1">DCNM ACL Manager</span>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav mr-auto">
+          </ul>
+
+          <!-- Logon Form -->
+          <!-- Display: None when logged in -->
+          <form class="form-inline my-2 my-lg-0 loggedOutMenu" id="logonForm">
+            <div class="form-group mb-2">
+              <label for="dcnmUsername" class="sr-only">Username</label>
+              <input type="text" class="form-control" id="dcnmUsername" value="apiuser">
+            </div>
+            <div class="form-group mx-sm-3 mb-2">
+              <label for="dcnmPassword" class="sr-only">Password</label>
+              <input type="password" class="form-control" id="dcnmPassword" value="C!sco123">
+            </div>
+            <button type="submit" class="btn btn-primary mb-2" id="logonButton">Log On</button>
+          </form>
+
+
+
+          <!-- Display: None unless logged in -->
+          <!-- Select Fabric Form -->
+          <form class="form-inline my-2 my-lg-0 d-none loggedOnMenu" id="selectFabricForm">
+            <div class="form-group mb-2">
+              <!-- <span class="navbar-brand mb-0 h5">Select Fabric</span> -->
+              <label for="selectFabric" class="mx-2 text-light">Selected Fabric</label>
+              <select name="selectFabric" class="form-control" id="selectFabric">
+                <!-- Dynamically Populated on Login -->
+                <option>1</option>
+                <option>2</option>
+                <option>3</option>
+                <option>4</option>
+                <option>5</option>
+              </select>
+              <button type="submit" class="btn btn-primary mx-2" id="reloadButton">Reload Fabric</button>
+            </div>
+          </form>
+          <!-- Logoff Form -->
+          <!-- Display: None unless logged in -->
+          <form class="form-inline my-2 my-lg-0 ml-3 d-none loggedOnMenu" id="logoutForm">
+            <button type="submit" class="btn btn-warning mb-2" id="logoutButton">Log Out</button>
+          </form>
+
+        </div>
+      </nav>
+    </div>
+    <div class="row mt-2">
+      <!-- Main Window -->
+        <div class="col-2">
+          <div class="nav flex-column">
+            <button type="button" class="btn btn-primary mb-2" data-toggle="modal" data-target="#createNewAclModal" name="newAclButton">Create New ACL</button>
+            <!-- Popup Modal to enter ACL name -->
+          </div>
+          <span class="h5">Access Lists</span>
+          <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+            <a class="nav-link active" id="v-pills-acl-1-tab" data-toggle="pill" href="#v-pills-acl-1" role="tab" aria-controls="v-pills-acl-1" aria-selected="true">ACL 1</a>
+            <a class="nav-link" id="v-pills-acl-2-tab" data-toggle="pill" href="#v-pills-acl-2" role="tab" aria-controls="v-pills-acl-2" aria-selected="false">ACL 2</a>
+            <a class="nav-link" id="v-pills-acl-2-tab" data-toggle="pill" href="#v-pills-acl-3" role="tab" aria-controls="v-pills-acl-3" aria-selected="false">ACL 3</a>
+            <a class="nav-link" id="v-pills-acl-2-tab" data-toggle="pill" href="#v-pills-acl-4" role="tab" aria-controls="v-pills-acl-4" aria-selected="false">ACL 4</a>
+          </div>
+
+        </div>
+        <div class="col-10 bg-secondary">
+          <div class="tab-content" id="v-pills-tabContent">
+            <div class="tab-pane fade show active" id="v-pills-acl-1" role="tabpanel" aria-labelledby="v-pills-acl-1-tab">
+              <nav class="navbar w-100 navbar-expand-md navbar-dark bg-dark">
+                <button type="button" class="btn btn-primary mr-2" data-toggle="modal" data-target="#editAclNameModal" name="editAclNameButton">
+                  <i data-feather="edit-3" ></i>
+                </button>
+                <span class="navbar-brand mb-0 h1">ACL 1</span>
+                <ul class="navbar-nav mr-auto">
+                  <li>
+                    <button type="button" class="btn btn-primary mx-1" data-toggle="modal" data-target="#selectedDevicesModal" name="selectedDevicesButton">Selected Devices</button>
+                  </li>
+                  <li>
+                    <button type="button" class="btn btn-primary mx-1" data-toggle="modal" data-target="#editCliModal" name="editCliButton">Edit CLI</button>
+                  </li>
+                  <li>
+                    <button type="button" class="btn btn-primary mx-1 disabled" name="updatePoliciesButton">Update DCNM Policies</button>
+                  </li>
+                  <li>
+                    <button type="button" class="btn btn-primary mx-1 disabled" name="deployPoliciesButton">Deploy DCNM Policies</button>
+                  </li>
+                </ul>
+                <button type="button" class="btn btn-danger mx-1" name="deleteAclButton">Delete ACL</button>
+              </nav>
+              <div class="table-responsive mt-2">
+                <table class="table table-dark table-striped table-hover table-bordered table-sm">
+                  <thead>
+                    <tr>
+                      <th scope="col">{Gear}</th>
+                      <th scope="col">#</th>
+                      <th scope="col">Type</th>
+                      <th scope="col">Protocol</th>
+                      <th scope="col">Source IP</th>
+                      <th scope="col">Source Operator</th>
+                      <th scope="col">Source Port Start</th>
+                      <th scope="col">Source Port Stop</th>
+                      <th scope="col">Destination IP</th>
+                      <th scope="col">Destination Operator</th>
+                      <th scope="col">Destination Port Start</th>
+                      <th scope="col">Destination Port Stop</th>
+                      <th scope="col">Extra</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><button type="button" class="btn btn-sm btn-primary mx-1" name="button"><i data-feather="edit-3"></i></button></td>
+                      <td>10</td>
+                      <td>permit</td>
+                      <td>tcp</td>
+                      <td>10.0.0.0/8</td>
+                      <td>range</td>
+                      <td>10000</td>
+                      <td>20000</td>
+                      <td>192.168.0.0/16</td>
+                      <td>range</td>
+                      <td>30000</td>
+                      <td>40000</td>
+                      <td>log</td>
+                    </tr>
+                    <tr>
+                      <td><button type="button" class="btn btn-sm btn-primary mx-1" name="button"><i data-feather="edit-3"></i></button></td>
+                      <td>20</td>
+                      <td>permit</td>
+                      <td>tcp</td>
+                      <td>11.0.0.0/8</td>
+                      <td>range</td>
+                      <td>10000</td>
+                      <td>20000</td>
+                      <td>192.169.0.0/16</td>
+                      <td>range</td>
+                      <td>30000</td>
+                      <td>40000</td>
+                      <td>log</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="tab-pane fade" id="v-pills-acl-2" role="tabpanel" aria-labelledby="v-pills-acl-2-tab">
+              <p>ACL 2</p>
+            </div>
+            <div class="tab-pane fade" id="v-pills-acl-3" role="tabpanel" aria-labelledby="v-pills-acl-3-tab">
+              <p>ACL 3</p>
+            </div>
+            <div class="tab-pane fade" id="v-pills-acl-4" role="tabpanel" aria-labelledby="v-pills-acl-4-tab">
+              <p>ACL 4</p>
+            </div>
+          </div>
+        </div>
+      </div>
+  </div>
+  <!-- Optional JavaScript -->
+  <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js"</script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+  <script src="./js/bootstrap.min.js"></script>
+  <script src="./js/feather.min.js"></script>
+  <script src="./js/aclm.js"></script>
+  <script type="text/javascript">
+    feather.replace()
+  </script>
+
+
+  <!-- Create New ACL Modal -->
+  <div class="modal fade" data-backdrop="static" id="createNewAclModal" tabindex="-1" role="dialog" aria-labelledby="createNewAclModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="createNewAclModalTitle">Create New ACL</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>Create a new empty ACL by name, or import an existing ACL from CLI configuration.</p>
+          <form>
+            <div class="form-group">
+              <label for="newAclName">New ACL Group Name</label>
+              <input type="text" class="form-control" id="newAclName" aria-describedby="newAclNameHelp">
+              <small id="newAclNameHelp" class="form-text text-muted">Name of the new ACL. This must be a single word consisting of a-z, A-Z, 0-9 "-" and "_" characters.</small>
+            </div>
+            <div class="form-group">
+              <label for="importedAclContent">Import ACL from CLI</label>
+              <textarea class="form-control" id="importedAclContent" rows="10"></textarea>
+              <small id="newAclNameHelp" class="form-text text-muted">Import ACL configuration from CLI.  Must start with "ip access-list XXXX".</small>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <!-- Onclick submit form -->
+          <button type="button" class="btn btn-primary">Save changes</button>
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript">
+      // Only Allow Create by Name or Import
+      $("#newAclName").change(function( event ) {
+        if ($(event.target)[0].value != "") {
+          console.log("[Create New ACL Modal] Disabling Import by CLI")
+          $("#importedAclContent").attr("Disabled","True")
+        }
+        else {
+          console.log("[Create New ACL Modal] Enabling Import by CLI")
+          $("#importedAclContent").removeAttr("Disabled")
+        }
+      });
+      $("#importedAclContent").change(function( event ) {
+        if ($(event.target)[0].value != "") {
+          console.log("[Create New ACL Modal] Disabling Create by Name")
+          $("#newAclName").attr("Disabled","True")
+        }
+        else {
+          console.log("[Create New ACL Modal] Enabling Create by name")
+          $("#newAclName").removeAttr("Disabled")
+        }
+      });
+    </script>
+  </div>
+
+  <!-- Edit ACL Name Modal -->
+  <div class="modal fade" data-backdrop="static" id="editAclNameModal" tabindex="-1" role="dialog" aria-labelledby="editAclNameModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editAclNameModalTitle">Edit ACL Name</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="form-group">
+              <label for="editAclName">Edit ACL Group Name</label>
+              <input type="text" class="form-control" id="editAclName" aria-describedby="editAclNameHelp">
+              <small id="editAclNameHelp" class="form-text text-muted">This must be a single word consisting of a-z, A-Z, 0-9 "-" and "_" characters.</small>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <!-- Onclick submit form -->
+          <button type="button" class="btn btn-primary">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit ACL as CLI Modal -->
+  <div class="modal fade" data-backdrop="static" id="editCliModal" tabindex="-1" role="dialog" aria-labelledby="editCliModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editCliModalTitle">Edit ACL as CLI</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="form-group">
+              <label for="aclCliContent">ACL CLI Configuration</label>
+              <textarea class="form-control" id="aclCliContent" rows="10"></textarea>
+              <small id="aclCliContentHelp" class="form-text text-muted">Generated CLI configuration.  Must start with "ip access-list XXXX".</small>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <!-- Onclick submit form -->
+          <button type="button" class="btn btn-primary">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Selected Devices Modal -->
+  <div class="modal fade" data-backdrop="static" id="selectedDevicesModal" tabindex="-1" role="dialog" aria-labelledby="selectedDevicesModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="selectedDevicesModalTitle">Selected Devices</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form class="form-inline">
+            <!-- <div class="form-group">
+              <label for="editAclName">Edit ACL Group Name</label>
+              <input type="text" class="form-control" id="editAclName" aria-describedby="editAclNameHelp">
+              <small id="editAclNameHelp" class="form-text text-muted">This must be a single word consisting of a-z, A-Z, 0-9 "-" and "_" characters.</small>
+            </div> -->
+            <div class="table-responsive mt-2">
+              <table class="table table-striped table-hover table-bordered table-sm">
+                <thead>
+                  <tr>
+                    <th scope="col">
+                      <!-- <div class="form-group form-check"><input type="checkbox" class="form-check-input mb-2" id="selectAll"></div> -->
+                    </th>
+                    <th scope="col">Fabric</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Model</th>
+                    <th scope="col">Serial Number</th>
+                    <th scope="col">Role</th>
+                    <th scope="col">Version</th>
+                    <th scope="col">ACL Policy ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><div class="form-group form-check mt-1"><input type="checkbox" class="form-check-input" id="deviceSerialNumber1"></div></td>
+                    <td>DC3</td>
+                    <td>DC3-N9K1</td>
+                    <td>N9K-C93180YC-FX</td>
+                    <td>FDO22192XCF</td>
+                    <td>border</td>
+                    <td>9.3(3)</td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td><div class="form-group form-check mt-1"><input type="checkbox" class="form-check-input" id="deviceSerialNumber2"></div></td>
+                    <td>DC3</td>
+                    <td>DC3-N9K2</td>
+                    <td>N9K-C93180YC-FX</td>
+                    <td>FDO21521S70</td>
+                    <td>border</td>
+                    <td>9.3(3)</td>
+                    <td>POLICY-301620</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <!-- Onclick submit form -->
+          <button type="button" class="btn btn-primary">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Loading Modal -->
+  <div class="modal" id="loadingModal" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-body d-flex justify-content-center">
+          <img src="./images/preloader.gif" alt="">
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

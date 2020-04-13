@@ -198,6 +198,7 @@ class aclm():
     #SELECTED_SERIAL_NUMBERS = None
     SELECTED_FABRIC = None
     POLICY_CACHE = None
+    FABRIC_INVENTORY = None
 
     def __init__(self, *args, **kwargs):
         # DCNM_FQDN, DCNM_USERNAME, DCNM_PASSWORD
@@ -233,6 +234,10 @@ class aclm():
                 fabric_inventory = self.processInventory(inventoryList)
                 self.FABRIC_INVENTORY = fabric_inventory
                 serialNumberList = list(self.FABRIC_INVENTORY.keys())
+
+                if len(serialNumberList) == 0:
+                    logging.debug("[aclm][__init__] Selectd Fabric has no devices - Not Building Policies")
+                    return
 
                 ## Set ACLM Objects from Session
                 self.ACLM_OBJECTS = kwargs.get('ACLM_OBJECTS')

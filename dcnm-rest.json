@@ -11,3 +11,11 @@
   "source": "ACLM",
   "priority": 500
 }
+
+
+
+{
+  "username": "apiuser",
+  "password": "C!sco123",
+  "server": "10.67.29.26"
+}

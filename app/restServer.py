@@ -5,6 +5,7 @@ logging.basicConfig(level=logging.DEBUG)
 #from datetime import datetime
 from flask import Flask, session
 from flask_restx import Resource, Api, reqparse, inputs, fields, marshal
+from flask_cors import CORS
 
 from aclm import aclm
 from myWildcard import MyWildcard
@@ -30,11 +31,21 @@ api = Api(app, version='1.0', title='ACL Manager REST API',
     description='REST API for DCNM ACL Manager',
     authorizations=authorizations)
 
+app.config.from_object(__name__)
+
+# enable CORS
+CORS(app, supports_credentials=True, resources={r'/*': {'origins': '*'}})
+
 # cookieDomain = app.session_interface.get_cookie_domain(app)
 # logging.debug("Cookie Domain: {}".format(cookieDomain))
 
 ### Setup Session ###
 app.secret_key = b'??%_a?d??vX?,'
+
+### Allow JS to read session cookie - BAD
+app.config['SESSION_COOKIE_HTTPONLY'] = False
+
+
 
 ### Build/Load ACLM Object from Session ###
 
@@ -140,6 +151,20 @@ deployOuputModel = api.model('deployOuputModel', {
     'successPTIList': fields.String
 })
 
+logonModel = api.model('logonModel', {
+    'username': fields.String,
+    'password': fields.String,
+    'server': fields.String
+})
+
+logonResponse = api.model('logonResponse', {
+    'logonStatus': fields.String,
+})
+
+selectFabricModel = api.model('selectFabricModel', {
+    'updateCache': fields.Boolean,
+    'fabricName': fields.String
+})
 
 managedAclModel = api.model('aclmModel', {
     'name': fields.String,
@@ -174,10 +199,10 @@ createNewAclm
 
 ### HORRIBLY INSECURE!!!
 @api.route('/logon')
-@api.param('username','DCNM Username', type=str, default="apiuser")
-@api.param('password','DCNM Password', type=str, default="C!sco123")
-@api.param('server','DCNM Server', type=str, default="10.67.29.26")
 class dcnmLogon(Resource, ):
+    @api.param('username','DCNM Username', type=str, default="apiuser")
+    @api.param('password','DCNM Password', type=str, default="C!sco123")
+    @api.param('server','DCNM Server', type=str, default="10.67.29.26")
     def get(self):
         """
         Sets up Flask session with DCNM session token
@@ -220,8 +245,57 @@ class dcnmLogon(Resource, ):
 
         logging.debug("[dcnmLogon][get] Session: {}".format(session))
 
+        # return {'logonStatus':'OK'}, 200, {'Access-Control-Allow-Origin': '*'}
         return {'logonStatus':'OK'}
 
+    @api.marshal_with(logonResponse)
+    @api.expect(logonModel)
+    def post(self):
+        """
+        Sets up Flask session with DCNM session token
+        """
+        parser = reqparse.RequestParser()
+        parser.add_argument('username', type=str, required=True)
+        parser.add_argument('password', type=str, required=True)
+        parser.add_argument('server', type=str, required=False)
+        args = parser.parse_args()
+        logging.debug("[dcnmLogon][get] Parsed Arguments: {}".format(args))
+        username = args['username']
+        password = args['password']
+        if args.get('server') == None:
+            server = "10.67.29.26"
+        else:
+            server = args['server']
+
+        session['DCNM_USERNAME'] = username
+        session['DCNM_PASSWORD'] = password
+        session['DCNM_FQDN'] = server
+
+        flask_aclm =  aclm(**{'DCNM_FQDN':server, 'DCNM_USERNAME':username, 'DCNM_PASSWORD':password})
+        flask_aclm.userLogon() # Required to set token?
+
+        ## Set Expiry Timer & Token in Session
+        session['DCNM_EXPIRY'] = flask_aclm.DCNM_EXPIRY
+        session['DCNM_TOKEN'] = flask_aclm.DCNM_TOKEN
+
+
+        ## Current Managed ACLM Hash IDs for Fabric
+        session['ACLM_OBJECTS'] = {}
+
+        ## Set Pending ACL Dictionary
+        session['PENDING'] = {}
+
+        # ## Set Selected Serial Numbers
+        # session['SELECTED_SERIAL_NUMBERS'] = []
+
+        ## Set Selected Serial Numbers
+        session['SELECTED_FABRIC'] = None
+        session["FABRIC_INVENTORY"] = None
+        session['POLICY_CACHE'] = None
+
+        logging.debug("[dcnmLogon][get] Session: {}".format(session))
+
+        return {'logonStatus':'OK'}
 
 @api.route('/logout')
 class dcnmLogout(Resource):
@@ -248,13 +322,56 @@ class dcnmLogout(Resource):
             logging.error(e)
             api.abort(500, e.__doc__, status = str(e), statusCode = "500")
 
+    def post(self):
+        """
+        Logout of DCNM
+        Clear Flask Session
+        Clear Cookie?
+        """
+        try:
+            flask_aclm = buildAclmFromSession(False, True)
+            output = flask_aclm.userLogout()
+            logging.debug("[dcnmLogout][get] Output: {}".format(output))
 
+            ## Clear Session
+            session.clear()
+            logging.debug("[dcnmLogout][get] Session: {}".format(session))
 
-@api.route('/policy/selectFabric')
-@api.param('fabricName','Fabric scope for ACLs', type=str, default="DC3")
-@api.param('updateCache','Force update of JSON policies cache', type=bool, default=False)
+            return {'logoutStatus':'OK'}
+
+        ### Catch All Exception
+        except Exception as e:
+            logging.error(e)
+            api.abort(500, e.__doc__, status = str(e), statusCode = "500")
+
+@api.route('/fabric/listFabrics')
+class listFabrics(Resource):
+    @api.doc(security='session')
+    def get(self):
+        """
+        Returns list of fabrics
+        """
+        logging.debug("[listFabrics][get] List Fabrics")
+        flask_aclm = buildAclmFromSession()
+        fabricList = flask_aclm.getFabrics()
+
+        output = []
+        for fabric in fabricList:
+            entry = {}
+            entry['id'] = fabric['id']
+            entry['fabricId'] = fabric['fabricId']
+            entry['fabricName'] = fabric['fabricName']
+            entry['fabricType'] = fabric['fabricType']
+            output.append(entry)
+
+        logging.debug("[listFabrics][get] Fabrics: {}".format(output))
+        return output
+
+@api.route('/fabric/selectFabric')
 class selectFabric(Resource):
     @api.doc(security='session')
+    @api.param('fabricName','Fabric scope for ACLs', type=str, default="DC3")
+    @api.param('updateCache','Force update of JSON policies cache', type=bool, default=False)
     def get(self):
         """
         Builds Managed ACL Objects for switches in selected fabric and returns dictonary of hash IDs
@@ -305,132 +422,48 @@ class selectFabric(Resource):
 
         return session['ACLM_OBJECTS']
 
+    @api.doc(security='session')
+    # @api.marshal_with(logonResponse)
+    @api.expect(selectFabricModel)
+    def post(self):
+        """
+        Builds Managed ACL Objects for switches in selected fabric and returns dictonary of hash IDs
+        """
+        parser = reqparse.RequestParser()
+        parser.add_argument('fabricName', required=True, type=str)
+        parser.add_argument('updateCache', type=inputs.boolean)
+        args = parser.parse_args()
+        logging.debug("[selectFabric][post] Parsed Arguments: {}".format(args))
+        fabricName = args['fabricName']
+        updateCache = args['updateCache']
 
-        ## Warn if pending ACLs and changing scope?
+        ## Build ACLM
+        if fabricName != session['SELECTED_FABRIC'] and len(session['PENDING']) > 0:
+            clearPending = True
+            logging.warning("[selectFabric][post] New fabric selected clearing pending changes.")
+        else:
+            clearPending = False
 
+        ## Set Selected Fabric Name
+        session['SELECTED_FABRIC'] = fabricName
+        session['ACLM_OBJECTS'] = {}
+        flask_aclm = buildAclmFromSession(updateCache, clearPending)
 
-        # serialNumberList = args['serialNumbers']
-        # logging.debug("[selectFabric][get] Parsed Selected Switches: {}".format(serialNumberList))
-        #
-        # try:
-        #     ## Add Selected Switches to Session Cache
-        #     updateCache = args['updateCache']
-        #     if session.get('SELECTED_SERIAL_NUMBERS') == None:
-        #         ## No Previously Selected Switches
-        #         updateCache = True
-        #
-        #         ## Combines Selected & Pending ACLs
-        #         updatedSerialNumbers = set(serialNumberList).union(set(session['SELECTED_SERIAL_NUMBERS']))
-        #         session['SELECTED_SERIAL_NUMBERS'] = list(updatedSerialNumbers)
-        #         logging.debug("[selectSwitches][get] No Previously Selected Switches - Updating Policies")
-        #
-        #     elif len(set(sessionSerialNumbers).symmetric_difference(set(serialNumberList))) != 0:
-        #         ## Selected Switches Changed
-        #         updateCache = True
-        #
-        #         ## Combines Selected & Pending ACLs
-        #         updatedSerialNumbers = set(serialNumberList).union(set(session['SELECTED_SERIAL_NUMBERS']))
-        #         session['SELECTED_SERIAL_NUMBERS'] = list(updatedSerialNumbers)
-        #         logging.debug("[selectSwitches][get] Selected Switches Changed - Updating Policies")
-        #
-        #     else:
-        #         logging.debug("[selectSwitches][get] No change in selected switches.  Using session cache")
-        #
-        #     ## Add to Session
-        #     flask_aclm = buildAclmFromSession(updateCache)
-        #
-        #     ## Return Default view of ACLM Objects
-        #     jsonOutput = {}
-        #     keylist = list(flask_aclm.ACLS.keys())
-        #     for key in keylist:
-        #         logging.debug("[selectSwitches][get] Processing Key: {}".format(key))
-        #         managedACL = flask_aclm.ACLS[key]
-        #         jsonOutput[key] = {'name': managedACL.name, 'hash': key}
-        #
-        #     return jsonOutput
-        #
-        # ### Catch All Exception
-        # except Exception as e:
-        #     logging.error("[selectSwitches][get] Error: {}".format(e))
-        #     api.abort(500, e.__doc__, status = str(e), statusCode = "500")
-        #
-        # return jsonList
+        ## Return Default view of ACLM Objects
+        keylist = list(flask_aclm.ACLS.keys())
+        for key in keylist:
+            logging.debug("[selectFabric][post] Processing Key: {}".format(key))
+            managedACL = flask_aclm.ACLS[key]
+            session['ACLM_OBJECTS'][key] = {
+                'name': managedACL.name,
+                'hash': key,
+                'status': managedACL.status,
+                # 'toAttach': list(postUpdateAcl.toAttach),
+                # 'toDetach': list(postUpdateAcl.toDetach),
+                'toDeploy': list(managedACL.toDeploy),
+                }
 
-
-
-# @api.route('/policy/selectSwitches')
-# @api.param('serialNumbers','Comma separated list of serial numbers', type=str, default="FDO22192XCF,FDO21521S70")
-# @api.param('updateCache','Force update of JSON policies cache', type=bool, default=False)
-# class selectSwitches(Resource):
-#     #@api.marshal_with(serialNumbers, as_list=True)
-#     @api.doc(security='session')
-#     def get(self):
-#         """
-#         Builds Managed ACL Objects for selected switches and returns dictonary of hash IDs
-#         """
-#         ## DONT Build ACLM
-#         # flask_aclm = aclm(**session)
-#
-#         # FDO22192XCF,FDO21521S70
-#         # "FDO22192XCF","FDO21521S70"
-#         parser = reqparse.RequestParser()
-#         # Look only in the querystring
-#         parser.add_argument('serialNumbers', required=True, type=str, location='args', action='split')
-#         parser.add_argument('updateCache', type=inputs.boolean, location='args')
-#         args = parser.parse_args()
-#         logging.debug("[selectSwitches][get] Parsed Arguments: {}".format(args))
-#
-#         sessionSerialNumbers = session.get('SELECTED_SERIAL_NUMBERS')
-#         logging.debug("[selectSwitches][get] Currently Selected Switches: {}".format(sessionSerialNumbers))
-#         serialNumberList = args['serialNumbers']
-#         logging.debug("[selectSwitches][get] Parsed Selected Switches: {}".format(serialNumberList))
-#         # test = set(sessionSerialNumbers).symmetric_difference(set(serialNumberList))
-#         # logging.debug(test)
-#
-#         try:
-#             ## Add Selected Switches to Session Cache
-#             updateCache = args['updateCache']
-#             if session.get('SELECTED_SERIAL_NUMBERS') == None:
-#                 ## No Previously Selected Switches
-#                 updateCache = True
-#
-#                 ## Combines Selected & Pending ACLs
-#                 updatedSerialNumbers = set(serialNumberList).union(set(session['SELECTED_SERIAL_NUMBERS']))
-#                 session['SELECTED_SERIAL_NUMBERS'] = list(updatedSerialNumbers)
-#                 logging.debug("[selectSwitches][get] No Previously Selected Switches - Updating Policies")
-#
-#             elif len(set(sessionSerialNumbers).symmetric_difference(set(serialNumberList))) != 0:
-#                 ## Selected Switches Changed
-#                 updateCache = True
-#
-#                 ## Combines Selected & Pending ACLs
-#                 updatedSerialNumbers = set(serialNumberList).union(set(session['SELECTED_SERIAL_NUMBERS']))
-#                 session['SELECTED_SERIAL_NUMBERS'] = list(updatedSerialNumbers)
-#                 logging.debug("[selectSwitches][get] Selected Switches Changed - Updating Policies")
-#
-#             else:
-#                 logging.debug("[selectSwitches][get] No change in selected switches.  Using session cache")
-#
-#             ## Add to Session
-#             #logging.debug('Update Cache: {}'.format(updateCache))
-#             flask_aclm = buildAclmFromSession(updateCache)
-#
-#             ## Return Default view of ACLM Objects
-#             jsonOutput = {}
-#             keylist = list(flask_aclm.ACLS.keys())
-#             for key in keylist:
-#                 logging.debug("[selectSwitches][get] Processing Key: {}".format(key))
-#                 managedACL = flask_aclm.ACLS[key]
-#                 jsonOutput[key] = {'name': managedACL.name, 'hash': key}
-#
-#             return jsonOutput
-#
-#         ### Catch All Exception
-#         except Exception as e:
-#             logging.error("[selectSwitches][get] Error: {}".format(e))
-#             api.abort(500, e.__doc__, status = str(e), statusCode = "500")
-#
-#         return jsonList
+        return session['ACLM_OBJECTS']
 
 @api.route('/aclm/')
 @api.param('autoDeploy','Automatically deploy new policies', type=bool, default=False)
