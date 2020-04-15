@@ -154,7 +154,7 @@ class acl_entry():
             msg = "{} {} {} range {} {}".format(self.aclType, self.aclProtocol, self.sourceIpMask, self.sourcePortStart, self.sourcePortStop )
         ## Source Port
         elif self.sourcePortStart != None and self.sourcePortStop == None:
-            msg = "{} {} {} eq {}".format(self.aclType, self.aclProtocol, self.sourceIpMask, self.sourcePortStart )
+            msg = "{} {} {} {} {}".format(self.aclType, self.aclProtocol, self.sourceIpMask, self.sourceOperator, self.sourcePortStart )
         ## No Source Port
         else:
             msg = "{} {} {}".format(self.aclType, self.aclProtocol, self.sourceIpMask)
@@ -165,7 +165,7 @@ class acl_entry():
             msg = msg + " {} range {} {}".format(self.destIpMask, self.destPortStart, self.destPortStop)
         ## Destination Port
         elif self.destPortStart != None and self.destPortStop == None:
-            msg = msg + " {} eq {}".format(self.destIpMask, self.destPortStart)
+            msg = msg + " {} {} {}".format(self.destIpMask, self.destOperator, self.destPortStart)
         ## No Destination Port
         else:
             msg = msg + " {}".format(self.destIpMask)
@@ -298,11 +298,11 @@ class acl_group():
                 else:
                     raise Exception("Port Out of Valid Range")
 
-            return portStart, portStop, content
+            return portOperator, portStart, portStop, content
 
         else:
             logging.debug("[acl_group][extractPortRange] No Port Filter Detected")
-            return None, None, content
+            return None, None, None, content
 
     def toCli(self):
         ## Note: Adds extra \n
@@ -470,10 +470,13 @@ class acl_group():
                     raise Exception('Invalid Source IP/Mask')
 
                 ### Source Operator
-                if entry['sourceOperator'] != None and entry['sourceOperator'] in newEntry.validProtocols:
+                if entry.get('sourceOperator') != None and entry['sourceOperator'] in newEntry.validOperators:
                     newEntry.sourceOperator = entry['sourceOperator']
                     newEntry.sourcePortStart = entry['sourcePortStart']
-                    newEntry.sourcePortStop = entry['sourcePortStop']
+                    if entry.get('sourcePortStop'):
+                        newEntry.sourcePortStop = entry['sourcePortStop']
+                    else:
+                        newEntry.sourcePortStop = None
 
                 ## Validate Destination IP Addresses
                 if ipfunctions.isIpV4AdddressMask(entry['destIpMask']):
@@ -482,15 +485,23 @@ class acl_group():
                     raise Exception('Invalid Destination IP/Mask')
 
                 ### Destination Operator
-                if entry['destOperator'] != None and entry['destOperator'] in newEntry.validProtocols:
+                if entry.get('destOperator') != None and entry['destOperator'] in newEntry.validOperators:
                     newEntry.destOperator = entry['destOperator']
                     newEntry.destPortStart = entry['destPortStart']
-                    newEntry.destPortStop = entry['destPortStop']
+                    if entry.get('destPortStop'):
+                        newEntry.destPortStop = entry['destPortStop']
+                    else:
+                        newEntry.destPortStop = None
 
                 ### Remaining
                 if 'extra' in list(entry.keys()):
                     newEntry.extra = entry['extra']
                     logging.debug("[acl_group][fromJson] Extra: {}".format(newEntry.extra))
+
+                ### Sanity Check
+                if newEntry.sourceOperator == None and newEntry.destOperator == None:
+                    logging.error("[acl_group][fromJson] L4 Protocol Not Recognised - Skipping Line")
+                    raise Exception('L4 Protocol Not Recognised')
 
             else:
                 ## Type Not Found
@@ -634,7 +645,8 @@ class acl_group():
                 ### Source Operator
 
                 try:
-                    portStart,portStop, content = self.extractPortRange(content)
+                    portOperator, portStart,portStop, content = self.extractPortRange(content)
+                    newEntry.sourceOperator = portOperator
                     newEntry.sourcePortStart = portStart
                     newEntry.sourcePortStop = portStop
                     if portStart != None or portStop != None:
@@ -655,7 +667,8 @@ class acl_group():
 
                 ### Destination Operator
                 try:
-                    portStart,portStop, content = self.extractPortRange(content)
+                    portOperator, portStart,portStop, content = self.extractPortRange(content)
+                    newEntry.destOperator = portOperator
                     newEntry.destPortStart = portStart
                     newEntry.destPortStop = portStop
                     if portStart != None or portStop != None:

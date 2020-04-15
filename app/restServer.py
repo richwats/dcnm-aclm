@@ -172,6 +172,7 @@ managedAclModel = api.model('aclmModel', {
     'status': fields.String,
     'policies': fields.Nested(policyModel, required=False, skip_none=True),
     'acl': fields.Nested(aclgModel, skip_none=True),
+    'cli': fields.String,
     'toAttach': fields.List(fields.String, skip_none=True),
     'toDetach': fields.List(fields.String, skip_none=True),
     'toDeploy': fields.List(fields.String, skip_none=True),
@@ -183,6 +184,7 @@ newAclModel = api.model('newAclModel', {
     'hash': fields.String,
     'status': fields.String,
     'acl': fields.Nested(aclgModel, required=False, skip_none=True),
+    'cli': fields.String,
     'toAttach': fields.List(fields.String, required=True),
     'toDetach': fields.List(fields.String, required=False, skip_none=True)
 })
@@ -367,6 +369,7 @@ class listFabrics(Resource):
         logging.debug("[listFabrics][get] Fabrics: {}".format(output))
         return output
 
+
 @api.route('/fabric/selectFabric')
 class selectFabric(Resource):
     @api.doc(security='session')
@@ -406,7 +409,10 @@ class selectFabric(Resource):
         # ## Set Fabric Inventory in Session
         # session["FABRIC_INVENTORY"] = output
 
-        ## Return Default view of ACLM Objects
+
+        output = {}
+
+        ## Build default view of ACLM Objects
         keylist = list(flask_aclm.ACLS.keys())
         for key in keylist:
             logging.debug("[selectFabric][get] Processing Key: {}".format(key))
@@ -420,7 +426,10 @@ class selectFabric(Resource):
                 'toDeploy': list(managedACL.toDeploy),
                 }
 
-        return session['ACLM_OBJECTS']
+        ## Return Output
+        output["acls"] = session['ACLM_OBJECTS']
+        output["inventory"] = session['FABRIC_INVENTORY']
+        return output
 
     @api.doc(security='session')
     # @api.marshal_with(logonResponse)
@@ -449,10 +458,12 @@ class selectFabric(Resource):
         session['ACLM_OBJECTS'] = {}
         flask_aclm = buildAclmFromSession(updateCache, clearPending)
 
-        ## Return Default view of ACLM Objects
+        output = {}
+
+        ## Build default view of ACLM Objects
         keylist = list(flask_aclm.ACLS.keys())
         for key in keylist:
-            logging.debug("[selectFabric][post] Processing Key: {}".format(key))
+            logging.debug("[selectFabric][get] Processing Key: {}".format(key))
             managedACL = flask_aclm.ACLS[key]
             session['ACLM_OBJECTS'][key] = {
                 'name': managedACL.name,
@@ -463,10 +474,13 @@ class selectFabric(Resource):
                 'toDeploy': list(managedACL.toDeploy),
                 }
 
-        return session['ACLM_OBJECTS']
+        ## Return Output
+        output["acls"] = session['ACLM_OBJECTS']
+        output["inventory"] = session['FABRIC_INVENTORY']
+        return output
 
 @api.route('/aclm/')
-@api.param('autoDeploy','Automatically deploy new policies', type=bool, default=False)
+@api.param('autoDeploy','Automatically deploy new policies', type=inputs.boolean, default=False)
 class newAclm(Resource):
     @api.doc(security='session')
     @api.marshal_with(newAclModel)
@@ -535,6 +549,7 @@ class aclmByHash(Resource):
     @api.marshal_with(managedAclModel)
     @api.expect(managedAclModel)
     @api.param('autoDeploy','Automatically deploy updated policies', type=bool, default=False)
+    @api.param('update','Update by CLI or JSON', type=str)
     def put(self, hash):
         """
         Update Managed ACL for selected hash ID
@@ -543,8 +558,10 @@ class aclmByHash(Resource):
             ## Get Args
             parser = reqparse.RequestParser()
             parser.add_argument('autoDeploy', type=inputs.boolean, location='args')
+            parser.add_argument('update', type=str, location='args')
             args = parser.parse_args()
             autoDeploy = args['autoDeploy']
+            update = args['update']
 
 
             ## Build ACLM
@@ -556,7 +573,12 @@ class aclmByHash(Resource):
             ## Get Existing Managed ACL Object
             managedACL = flask_aclm.ACLS[hash]
             logging.debug("[aclmByHash][put] Initial ACL Object: {}".format(managedACL))
-            updatedACL = managedACL.updateFromJson(api.payload)
+
+            if update == "cli":
+                updatedACL = managedACL.updateFromCli(api.payload)
+            else:
+                ## Assume JSON
+                updatedACL = managedACL.updateFromJson(api.payload)
 
             ## Update Policies in DCNM
             flask_aclm.updatePolicies(managedACL)

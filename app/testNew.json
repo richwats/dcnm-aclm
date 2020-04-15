@@ -12,7 +12,27 @@
         "aclProtocol": "ip",
         "sourceIpMask": "any",
         "destIpMask": "any",
-        "extra": []}
+        "extra": []},
+      "30": {
+          "aclType": "permit",
+          "aclProtocol": "tcp",
+          "sourceIpMask": "10.0.0.0/8",
+          "sourceOperator": "range",
+          "sourcePortStart": 1000,
+          "sourcePortStop": 2000,
+          "destIpMask": "192.168.1.0/24",
+          "destOperator": "range",
+          "destPortStart": 3000,
+          "destPortStop": 4000,
+          "extra": []},
+      "40": {
+          "aclType": "permit",
+          "aclProtocol": "tcp",
+          "sourceIpMask": "10.0.0.0/8",
+          "sourceOperator": "eq",
+          "sourcePortStart": 443,
+          "destIpMask": "192.168.1.0/24",
+          "extra": []}
     }
   }
 }
@@ -31,6 +51,16 @@
     }
   }
 }
+
+self.sourceIpMask,
+    self.sourceOperator,
+    self.sourcePortStart,
+    self.sourcePortStop,
+    self.destIpMask,
+    self.destOperator,
+    self.destPortStart,
+    self.destPortStop,
+    self.extra
 
 
 {'acl': {

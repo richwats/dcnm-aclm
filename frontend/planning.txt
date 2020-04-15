@@ -1,14 +1,18 @@
 Datatables?
 
+"host" type ACL entries
+
 To Do:
 - Remember/trigger selected Fabric, ACL
-
-- loadAclsForFabric
-  - buildAclsFromFabric
-    - clear list/tabs
-    - build list/tabs
-      - template?
-
-- buildSelectDevicesFromFabric
-  - Needs fabric inventory
-  - Use policy dictionary to determine selected device
+- edit ACL name
+- function & model for edit ACL entry
+  - validXXXX functions
+- function & model for new ACL entry
+  - validXXXX functions
+  - same modal - no entry?
+- reorder function & interval
+- PUT (update) function for all main edit functions
+- Colour selected Devices rows
+  - Green for currently applied
+  - Red for pending remove?
+  - Orange for pending add?

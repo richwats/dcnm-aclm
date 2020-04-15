@@ -126,6 +126,7 @@ class managedACL():
         "status": self.status,
         "policies": self.policies,
         "acl": self.acl.toDict(),
+        "cli": self.acl.toCli(),
         "toAttach": list(self.toAttach),
         "toDetach": list(self.toDetach),
         "toDeploy": list(self.toDeploy)
@@ -164,6 +165,40 @@ class managedACL():
 
         ## Update ACL
         self.acl.fromJson(jsonInput['acl'])
+
+        return self.toDict()
+
+    def updateFromCli(self, jsonInput):
+        """
+        Update Managed ACL from CLI Input in JSON payload
+        - name
+        - cli
+        - toAttach
+        - toDetach
+
+        ..everything else ignored
+        """
+        logging.debug("[managedACL][updateFromCli] Updating Managed ACL from CLI: {}".format(jsonInput['cli']))
+
+        ## Change Name
+        if 'name' in list(jsonInput.keys()):
+            if jsonInput['name'] != self.name:
+                self.acl.name = jsonInput['name']
+                self.acl.generateHash()
+                self.name = jsonInput['name']
+
+        ## Attach New Switch
+        if len(jsonInput['toAttach']) > 0:
+            for serial in jsonInput['toAttach']:
+                self.markAttachACLtoSwitch(serial)
+
+        ## Detach Switch
+        if len(jsonInput['toDetach']) > 0:
+            for serial in jsonInput['toDetach']:
+                self.markDetachACLfromSwitch(serial)
+
+        ## Update ACL
+        self.acl.fromCli(jsonInput['cli'])
 
         return self.toDict()
 
