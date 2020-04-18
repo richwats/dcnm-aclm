@@ -4,6 +4,7 @@ var ACLM_API = "localhost:32768";
 var LOGGED_ON = false;
 
 var SELECTED_FABRIC = null;
+var SELECTED_ACL = null;
 var FABRIC_INVENTORY = null;
 var ACL_DETAIL = null;
 
@@ -70,8 +71,20 @@ function consoleLog(input){
   console.log("[consoleLogger] "+JSON.stringify(input))
 }
 
-function refreshFabric(){
-  console.log("[refreshFabric] Refresh Fabric")
+function deployPolicies(){
+  console.log("[deployPolicies] Policies to deploy: "+JSON.stringify(ACL_DETAIL.toDeploy))
+  resp = aclmApiWrapper("post","/aclm/"+ACL_DETAIL.hash+"/deploy", null, refreshFabric)
+}
+
+function refreshFabric(apiResponse){
+  console.log("[refreshFabric] Refresh Fabric: "+SELECTED_FABRIC)
+
+  if (apiResponse != ""){
+    console.log("[refreshFabric] API Reponse: "+JSON.stringify(apiResponse))
+    SELECTED_ACL = apiResponse.hash
+    localStorage.setItem('SELECTED_ACL', SELECTED_ACL)
+  }
+
   $('#selectFabricForm').submit();
 }
 
@@ -90,12 +103,26 @@ function buildFabricSelector(input){
     //console.log("[buildFabricSelector] This: "+JSON.stringify(this))
     $("<option>").val(this.fabricName).text(this.fabricName).appendTo(fabricSelector)
   });
+
+  // Check localStorage
+  if (localStorage.getItem('SELECTED_FABRIC')){
+    SELECTED_FABRIC = localStorage.getItem('SELECTED_FABRIC')
+    fabricSelector.val(SELECTED_FABRIC)
+    fabricSelector.trigger('change')
+  }
+
 }
 
 function loadAclsForFabric(input){
   console.log("[loadAclsForFabric] Loading ACLs for Fabric: "+input)
+
+  // Set SELECTED_FABRIC
   SELECTED_FABRIC = input
-  resp = aclmApiWrapper("post","/fabric/selectFabric", {'fabricName':input, 'updateCache': true }, buildAclList)
+
+  // Set localStorage
+  localStorage.setItem('SELECTED_FABRIC',SELECTED_FABRIC)
+
+  resp = aclmApiWrapper("get","/fabric/selectFabric/"+input+"?updateCache=true", null , buildAclList)
 
   // console.log("[loadAclsForFabric] Loading Inventory for Fabric: "+input)
   // resp = aclmApiWrapper("post","/fabric/selectFabric", {'fabricName':input, 'updateCache': true }, buildAclList)
@@ -135,11 +162,54 @@ function buildEditAclModal(position){
   $("#aclDestPortStop").val(aclDetails['destPortStop'])
   $("#aclExtra").val(aclDetails['extra'])
 
+  // Delete Button
+  $("#deleteAclEntryButton")
+  .removeAttr('disabled')
+  .data('title','Delete ACL Entry')
+  .data('message','Please confirm you want to delete ACL entry #'+position)
+  .data('confirm','deleteAclEntry')
+  .val(position)
+  // .attr('data-callback','test')
+
   // Triger
   $("#aclType").trigger("change")
 
   // Show modal
   $("#aclEntryModal").modal("show")
+}
+
+function deleteAcl(hash){
+  console.log("[deleteAcl] Delete ACL Hash: "+hash)
+
+  // console.log("[deleteAclEntry] DELETE payload: "+JSON.stringify(payload))
+  resp = aclmApiWrapper("delete","/aclm/"+hash, null, refreshFabric)
+
+  if (resp){
+    $('#aclEntryModal').modal('hide')
+  }
+
+  // Clear Selected ACL
+  SELECTED_ACL = null
+  localStorage.removeItem('SELECTED_ACL')
+
+}
+
+function deleteAclEntry(position){
+  console.log("[deleteAclEntry] Delete ACL Entry: "+position)
+
+  // Remove Entry
+  var payload = ACL_DETAIL
+  delete payload.acl.entries[position]
+  console.log("[deleteAclEntry] PUT payload: "+JSON.stringify(payload))
+  resp = aclmApiWrapper("put","/aclm/"+payload.hash+"?update=json", payload, refreshFabric)
+
+  if (resp){
+    $('#aclEntryModal').modal('hide')
+  }
+
+  // Reset Disabled
+  $("#deleteAclEntryButton").attr('disabled','disabled').removeAttr('data-position').removeAttr('value')
+
 }
 
 function loadAclDetails(input){
@@ -151,15 +221,42 @@ function buildAclDetails(input){
   console.log("[buildAclDetails] ACL: "+JSON.stringify(input))
   // console.log("[buildAclDetails] Building ACL Details for Hash: "+input)
 
+  // Set localStorage
+  SELECTED_ACL = input.hash
+  localStorage.setItem('SELECTED_ACL', SELECTED_ACL)
+  // console.log(localStorage)
+
   ACL_DETAIL = input
 
-  //
-  var selector = "#list-"+input.hash
-  var tabPane = $(selector)
-  // console.log(tabPane)
+  // Check & Display Warning
+  if (ACL_DETAIL.status == "NotApplied"){
+    $('#aclTableWarning').removeClass('d-none').html("<i><b>WARNING:</b></i> This ACL is not currently applied to any switch and will be lost should the ACL Manager session expire")
+  }
+  else {
+    $('#aclTableWarning').addClass('d-none').html()
+  }
+
+  // Check toDeploy
+  if (ACL_DETAIL.toDeploy.length > 0){
+    console.log("[buildAclDetails] Polices to deploy: "+JSON.stringify(ACL_DETAIL.toDeploy))
+    $("#deployPoliciesButton").removeClass("disabled").removeClass("btn-secondary").addClass("btn-warning").removeAttr("disabled")
+  }
+  else {
+    $("#deployPoliciesButton").addClass("disabled").addClass("btn-secondary").removeClass("btn-warning").attr("disabled","disabled")
+  }
+
+  // Set Active List Member
+  $("#acl-listgroup .active").removeClass("active")
+  $("#acl-"+input.hash).addClass("active")
 
   // Set ACL Name
   $('#aclNameSpan').text(input.name)
+
+  // Set deleteAclButton
+  $('#deleteAclButton')
+  .val(input.hash)
+  .data('title','Delete ACL '+input.name)
+  .data('message','Please confirm you want to delete ACL '+input.name+'<br><br><i><b>WARNING:</b></i> This will automatically remove policies from assigned switches')
 
   // Build Edit ACL Name Modal
   var editAclName = $('#editAclName')
@@ -184,7 +281,8 @@ function buildAclDetails(input){
     // Build Table Row
     var newRow = $("<tr>").appendTo(selectedDevicesTable).attr("data-serial", serialNumber)
     if (policyId != null){
-      $("<td>").html('<div class="form-group form-check mt-1"><input type="checkbox" class="form-check-input" checked name="selectedDevice" value="'+entry.serialNumber+'"></div>').appendTo(newRow)
+      $("<td>").html('<div class="form-group form-check mt-1"><input id="cb-'+serialNumber+'" type="checkbox" class="form-check-input" data-policyid="'+policyId+'" name="selectedDevice" value="'+entry.serialNumber+'"></div>').appendTo(newRow)
+      $("#cb-"+serialNumber).attr('checked','checked')
     }
     else {
       $("<td>").html('<div class="form-group form-check mt-1"><input type="checkbox" class="form-check-input" name="selectedDevice" value="'+entry.serialNumber+'"></div>').appendTo(newRow)
@@ -197,14 +295,16 @@ function buildAclDetails(input){
     $("<td>").text(entry.switchRole).appendTo(newRow)
     $("<td>").text(entry.release).appendTo(newRow)
     $("<td>").text(policyId).appendTo(newRow)
+
   })
 
-  // Copy Template
-  var tabTemplate = $("#tabTemplate")
-  tabPane.html(tabTemplate.html())
+
+  // // Copy Template
+  // var tabTemplate = $("#tabTemplate")
+  // tabPane.html(tabTemplate.html())
 
   // Build Table
-  var aclTable = $(tabPane).find(".aclTable")
+  var aclTable = $("#aclTable")
   aclTable.find("tbody").empty()
   $.each(input.acl.entries, function( position, entry){
     console.log("[buildAclDetails] "+position+": "+JSON.stringify(entry))
@@ -254,6 +354,8 @@ function buildAclDetails(input){
 
   // Bind Functions
 
+
+  // ACL Entry Modal Scripts
   var aclSourceOperator = $("#aclSourceOperator")
   aclSourceOperator.change(function(e){
     // console.log("TEST: "+$(this).val())
@@ -330,7 +432,7 @@ function buildAclDetails(input){
     }
   })
 
-  // ACL Entry Modal Scripts
+
   var aclType = $("#aclType")
   aclType.change(function(e){
     // console.log("TEST: "+$(this).val())
@@ -361,17 +463,20 @@ function buildAclDetails(input){
   // Icons
   feather.replace()
 
+  // Unhide
+  $('#aclTableDisplay').removeClass("d-none")
+
 }
 
 function buildAclList(input){
   console.log("[buildAclList] Building ACL List")
   // console.log("[buildAclList] ACL: "+JSON.stringify(input))
 
-  var aclList = $("#acl-list-tab")
+  var aclList = $("#acl-listgroup")
   aclList.empty()
 
-  var contentTab = $("#acl-content-tab")
-  contentTab.empty()
+  // var contentTab = $("#acl-content-tab")
+  // contentTab.empty()
 
   // var tabTemplate = $("#tabTemplate")
   // console.log(tabTemplate.html())
@@ -390,32 +495,32 @@ function buildAclList(input){
     // console.log("[buildAclList] ACL Hash: "+hash)
     console.log("[buildAclList] ACL Details: "+JSON.stringify(item))
 
-    var newListEntry = $("<a>")
+    var newListEntry = $("<button>")
     .addClass("list-group-item")
     .addClass("list-group-item-action")
-    .attr("data-toggle","list")
-    .attr("href","#list-"+hash)
-    .attr("role","tab")
+    .val(hash)
+    .attr('id','acl-'+hash)
+    .on("click",function(){
+      console.log("[Select ACL] ACL: "+hash)
+      loadAclDetails(hash)
+    })
     .text(item.name)
     .appendTo(aclList)
 
-    var newTab = $("<div>")
-    .addClass("tab-pane")
-    .attr("id","list-"+hash)
-    .attr("role","tabpanel")
-    .attr("data-hash",hash)
-    // Here on load?
-    // .html(tabTemplate.html())
-    .appendTo(contentTab)
-    .on("show", loadAclDetails(hash))
-
-    // // Set ACL Name
-    // $(newTab).find(".navbar-brand").text(item.name)
-
   });
 
-  // Select 1st Tab
-  $('#acl-list-tab a:first-child').tab('show')
+  // Set Active ACL from localStorage
+  // console.log(localStorage)
+  if (localStorage.getItem('SELECTED_ACL') != undefined ){
+    SELECTED_ACL = localStorage.getItem('SELECTED_ACL')
+    console.log("[buildAclList] SELECTED_ACL from localStorage:"+SELECTED_ACL)
+    $('#acl-'+SELECTED_ACL).addClass('active').trigger('click')
+  }
+  else {
+    // Hide ACL Table
+    console.log("[buildAclList] No SELECTED_ACL from localStorage. Hiding Table")
+    $('#aclTableDisplay').addClass('d-none')
+  }
 
   // Icons
   feather.replace()
@@ -440,15 +545,23 @@ function aclmApiWrapper(method, path, payload, success){
 
   switch(method) {
     case "get":
-    // console.log("[aclmApiWrapper] Get");
-    var apiCall = $.ajax({
-      type: "GET",
-      url: url,
-      //data: payload,
-      success: success
-    });
-    return apiCall;
-    break;
+      // console.log("[aclmApiWrapper] Get");
+      var apiCall = $.ajax({
+        type: "GET",
+        url: url,
+        //data: payload,
+        success: success
+      });
+
+      break;
+    case "delete":
+      // console.log("[aclmApiWrapper] Delete");
+      var apiCall = $.ajax({
+        type: "DELETE",
+        url: url,
+        //data: payload,
+        success: success
+      });
       break;
     case "post":
       // console.log("[aclmApiWrapper] Post");
@@ -458,7 +571,6 @@ function aclmApiWrapper(method, path, payload, success){
         data: JSON.stringify(payload),
         success: success
       });
-      return apiCall;
       break;
     case "put":
       // console.log("[aclmApiWrapper] Put");
@@ -468,12 +580,13 @@ function aclmApiWrapper(method, path, payload, success){
         data: JSON.stringify(payload),
         success: success
       });
-      return apiCall;
       break;
     default:
+      break;
       // code block
   }
-
+  console.log("[aclmApiWrapper] Response: "+JSON.stringify(apiCall))
+  return apiCall;
 
       // // Get some values from elements on the page:
       // var $form = $( this ),
@@ -524,14 +637,14 @@ $(document).ready(function(){
     //console.log(resp)
   }
 
-  // Keep open tab on refresh
-  $('a[data-toggle="tab"]').on('show.bs.tab', function(e) {
-    localStorage.setItem('activeTab', $(e.target).attr('href'));
-  });
-  var activeTab = localStorage.getItem('activeTab');
-  if (activeTab) {
-    $('#v-pills-tab a[href="' + activeTab + '"]').tab('show');
-  }
+  // // Keep open tab on refresh
+  // $('a[data-toggle="tab"]').on('show.bs.tab', function(e) {
+  //   localStorage.setItem('activeTab', $(e.target).attr('href'));
+  // });
+  // var activeTab = localStorage.getItem('activeTab');
+  // if (activeTab) {
+  //   $('#v-pills-tab a[href="' + activeTab + '"]').tab('show');
+  // }
 
   $('#logonForm').submit(function(e){
     console.log("[Logon Form] Form Submit Triggered")
@@ -566,6 +679,32 @@ $(document).ready(function(){
 
   $('#selectFabric').change(function(e){
     $('#selectFabricForm').submit();
+  });
+
+  // Create New ACL  Form
+  $('#createNewAclForm').submit(function(e){
+    // Stop form from submitting normally
+    e.preventDefault();
+    console.log("[Create New ACL Form] Form Submit Triggered")
+    var newAclName = $("#newAclName").val()
+    var importedAclContent = $("#importedAclContent").val()
+
+    if (newAclName != null){
+      // Use Name
+      console.log("[Create New ACL Form] Name Changed. New Name: "+newAclName)
+
+      payload = {
+        'name': newAclName,
+        'acl': {'name': newAclName }
+       }
+      console.log("[Create New ACL Form] POST payload: "+JSON.stringify(payload))
+
+      resp = aclmApiWrapper("post","/aclm/", payload, refreshFabric)
+
+      if (resp){
+        $('#createNewAclModal').modal('hide')
+      }
+    }
   });
 
   // Edit ACL Name Form
@@ -603,18 +742,69 @@ $(document).ready(function(){
     if (aclCliContent !== ACL_DETAIL.cli){
       // CLI Changed
       console.log("[Edit CLI Form] CLI Changed. CLI: "+aclCliContent)
-
-      var payload = ACL_DETAIL
-      payload.cli = aclCliContent
-
-      console.log("[Edit CLI Form] PUT payload: "+JSON.stringify(payload))
-
-      resp = aclmApiWrapper("put","/aclm/"+payload.hash+"?update=cli", payload, refreshFabric)
-
-      if (resp){
-        $('#editCliModal').modal('hide')
-      }
     }
+    else {
+      console.log("[Edit CLI Form] CLI Unchanged. Force Refresh of CLI")
+    }
+
+    var payload = ACL_DETAIL
+    payload.cli = aclCliContent
+    console.log("[Edit CLI Form] PUT payload: "+JSON.stringify(payload))
+    resp = aclmApiWrapper("put","/aclm/"+payload.hash+"?update=cli", payload, refreshFabric)
+
+    if (resp){
+      $('#editCliModal').modal('hide')
+    }
+
+  });
+
+  // Select Devices Form
+  $('#selectedDevicesForm').submit(function(e){
+    // Stop form from submitting normally
+    e.preventDefault();
+    console.log("[Edit Selected Devices Form] Form Submit Triggered")
+    var checkedBoxInputs = $("#selectedDevicesForm :checkbox")
+
+    var toAttach = []
+    var toDetach = []
+
+    $.each(checkedBoxInputs, function(){
+      if ($(this).prop('checked') === true){
+        // Switch Selected
+        if ($(this).data('policyid') != undefined){
+          // Existing Policy - No Change
+        }
+        else {
+          // Add to Attach
+          console.log("[Edit Selected Devices Form] Attach Switch: "+$(this).val())
+          toAttach.push($(this).val())
+        }
+      }
+      else {
+        // Switch Not Selected
+        if ($(this).data('policyid') != undefined){
+          console.log("[Edit Selected Devices Form] Detach Switch: "+$(this).val())
+          toDetach.push($(this).val())
+        }
+        else {
+          // No Existing Policy - No Change
+        }
+      }
+    })
+    console.log("[Edit Selected Devices Form] toAttach List: "+JSON.stringify(toAttach))
+    console.log("[Edit Selected Devices Form] toDetach List: "+JSON.stringify(toDetach))
+
+    var payload = ACL_DETAIL
+    payload.toAttach = toAttach
+    payload.toDetach = toDetach
+
+    console.log("[Edit ACL Entry] PUT payload: "+JSON.stringify(payload))
+    resp = aclmApiWrapper("put","/aclm/"+payload.hash+"?update=json", payload, refreshFabric)
+
+    if (resp){
+      $('#aclEntryModal').modal('hide')
+    }
+
   });
 
   // Edit ACL Entry Form
@@ -637,7 +827,7 @@ $(document).ready(function(){
     }
 
     // console.log("[Edit ACL Entry Form] Content: "+JSON.stringify($('#aclEntryForm input')))
-    console.log($('#aclEntryForm :input[disabled]'))
+    // console.log($('#aclEntryForm :input[disabled]'))
 
     entry['aclType'] = $("#aclType").val()
     if (entry['aclType'] == "remark"){
@@ -693,7 +883,60 @@ $(document).ready(function(){
 
   });
 
+  // New ACL Modal Setup
+  $("#newAclName").change(function( event ) {
+    if ($(event.target)[0].value != "") {
+      console.log("[Create New ACL Modal] Disabling Import by CLI")
+      $("#importedAclContent").attr("Disabled","True")
+    }
+    else {
+      console.log("[Create New ACL Modal] Enabling Import by CLI")
+      $("#importedAclContent").removeAttr("Disabled")
+    }
+  });
+  $("#importedAclContent").change(function( event ) {
+    if ($(event.target)[0].value != "") {
+      console.log("[Create New ACL Modal] Disabling Create by Name")
+      $("#newAclName").attr("Disabled","True")
+    }
+    else {
+      console.log("[Create New ACL Modal] Enabling Create by name")
+      $("#newAclName").removeAttr("Disabled")
+    }
+  });
 
+  // Confirmation Modal Setup
+  $("#confirmModal").on("show.bs.modal", function (event) {
+    // Button that triggered the modal
+    var button = $(event.relatedTarget)
+    var value = button.val() // Extract info from data-* attributes
+    var confirm = eval(button.data("confirm"))
+
+    var title = button.data("title")
+    var message = button.data("message")
+    // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
+    // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
+    var modal = $(this)
+    modal.find('.modal-title').text(title)
+    modal.find('.modal-body .alert').html(message)
+    // Reset All Click Functions
+    var test = modal.find('.modal-footer .confirmButton').off("click")
+    // console.log(test)
+    // Find New Click Function
+    modal.find('.modal-footer .confirmButton').on("click",function(){
+      // Console Log
+      console.log("[confirmModal] Executing Callback: "+button.data("confirm")+" Value: "+value)
+
+      // Close All Modals
+      $(".modal").modal('hide')
+
+      // Excecute Callback
+      confirm(value)
+
+
+
+    })
+  })
 
 
 });

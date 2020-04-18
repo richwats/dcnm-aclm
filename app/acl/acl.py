@@ -56,18 +56,18 @@ class acl_entry():
     vlan                  Configure match based on vlan
     log                   Log matches against this entry
     """
-    aclType = None
-    aclProtocol = None
-    remarks = None
-    sourceIpMask = None
-    destIpMask = None
-    sourceOperator = None
-    sourcePortStart = None
-    sourcePortStop = None
-    destOperator = None
-    destPortStart = None
-    destPortStop = None
-    extra = None
+    # aclType = None
+    # aclProtocol = None
+    # remarks = None
+    # sourceIpMask = None
+    # destIpMask = None
+    # sourceOperator = None
+    # sourcePortStart = None
+    # sourcePortStop = None
+    # destOperator = None
+    # destPortStart = None
+    # destPortStop = None
+    # extra = None
 
 
     # Examples
@@ -85,6 +85,21 @@ class acl_entry():
         # self.sourcePort = sourcePort
         # self.destIP = destIP
         # self.destPort = destPort
+
+        ## Reset
+        self.aclType = None
+        self.aclProtocol = None
+        self.remarks = None
+        self.sourceIpMask = None
+        self.destIpMask = None
+        self.sourceOperator = None
+        self.sourcePortStart = None
+        self.sourcePortStop = None
+        self.destOperator = None
+        self.destPortStart = None
+        self.destPortStop = None
+        self.extra = None
+
         return
 
     def __str__(self):
@@ -178,18 +193,32 @@ class acl_entry():
             pass
 
         logging.debug("[acl_entry][toCli] Message Processing - Source & Destination: {}".format(msg))
+
         return msg
 
 
 class acl_group():
     """docstring for ."""
 
-    name = ""
-    interval = 10
-    entries = {}
-    hash = None
+    # name = ""
+    # interval = 10
+    # entries = {}
+    # hash = None
+    # cli = None
+
+    """
+    Initialised from "fromCli" or "fromJson"
+    """
 
     def __init__(self, name = None):
+        ## Reset
+        self.name = ""
+        self.interval = 10
+        self.entries = {}
+        self.hash = None
+        self.cli = None
+
+        ## Set Name
         self.name = name
 
     def __str__(self):
@@ -209,11 +238,14 @@ class acl_group():
         if position == 0:
             position = self.getLastEntry() + self.interval
         self.entries[position] = row
-        self.generateHash()
+        #self.generateHash() - moved to fromJson & fromCli
         return
 
     def removeRow(self, position):
         row = self.entries.pop(position, None)
+        ### Generate CLI
+        self.toCli()
+        ## Generate Hash
         self.generateHash()
         return row
 
@@ -230,7 +262,10 @@ class acl_group():
             newEntries[position] = v
         self.entries = newEntries
         sorted(self.entries)
+
+        self.toCli() # needed?
         self.generateHash() # needed?
+
         return
 
     def extractIPv4NetMask(self, content):
@@ -309,8 +344,14 @@ class acl_group():
         output = "ip access-list {}\n".format(self.name)
         sorted(self.entries)
         for k,v in self.entries.items():
+            if k == None:
+                continue
             output = output + "  {} {}\n".format(k, v.toCli())
-        return output
+
+        ### Build CLI
+        self.cli = output
+
+        return output # may not be needed
 
     def toDict(self):
         sorted(self.entries)
@@ -354,7 +395,8 @@ class acl_group():
 
     def generateHash(self):
         logging.debug("[acl_group][generateHash] Generating MD5 hash of CLI content")
-        content = str(self.toCli())
+        # content = str(self.toCli())
+        content = self.cli
         logging.debug("[acl_group][generateHash] Content: {}".format(content))
         content = content.encode('utf-8')
         self.hash = hashlib.md5(content).hexdigest()
@@ -396,11 +438,16 @@ class acl_group():
 
         ## No Entries - Return empty ACL
         if 'entries' not in list(input.keys()):
+            self.toCli()
             self.generateHash()
             return
 
         ## Iterate Entries
         for position, entry in input['entries'].items():
+
+            if position == None or position == "":
+                raise Exception('ACL entry position is required')
+
             newEntry = acl_entry()
             logging.info("[acl_group][fromJson] Processing Position: {} Entry: {}".format(position, entry))
 
@@ -514,6 +561,12 @@ class acl_group():
             ## Add to entries
             self.insertRow(newEntry, position)
 
+        ### Generate CLI
+        self.toCli()
+
+        ### Generate Hash
+        self.generateHash()
+
         return
 
     def fromCli(self, input):
@@ -535,8 +588,7 @@ class acl_group():
             logging.info("[acl_group][fromCli] Input ACL Name: {}".format(m.group(1)))
             if self.validateName(m.group(1)):
                 self.name = m.group(1)
-                ## Generate hash
-                self.generateHash()
+
             else:
                 raise Exception("ACL Name is Invalid: {}".format(m.group(1)))
         else:
@@ -544,6 +596,15 @@ class acl_group():
             raise Exception('Unable to extract IP ACL name')
 
             #self.name = str(m.group(1))
+
+        if len(lines) == 0:
+            ### Generate CLI
+            self.toCli()
+
+            ## Generate hash
+            self.generateHash()
+
+
 
         # else:
         #     ## Error
@@ -694,8 +755,18 @@ class acl_group():
             ## Add to entries
             try:
                 self.insertRow(newEntry, position)
+
             except Exception as e:
                 logging.error("[acl_group][fromCli] Unable to add line to ACL group: {} - Skipping Line".format(e))
                 continue
+
+
+        ### Generate CLI
+        self.toCli()
+
+        ### Generate Hash
+        self.generateHash()
+
+
 
         return

@@ -41,27 +41,42 @@ class managedACL():
     - ACL Object
 
     """
-    name = None
-    hash = None
-
-    # Status
-    status = None  # New, Deployed
-    # NotApplied - No switches applied
-    # Applied - Policy IDs exist for one or more switches
-
-    policies = {} # Deployed Policies
-    acl = None
-    toAttach = set()
-    toDetach = set()
-    toDeploy = set() #list of Policy-IDs to deploy
+    # name = None
+    # hash = None
+    #
+    # # Status
+    # status = None  # New, Deployed
+    # # NotApplied - No switches applied
+    # # Applied - Policy IDs exist for one or more switches
+    #
+    # policies = dict() # Deployed Policies
+    # acl = None
+    # toAttach = set()
+    # toDetach = set()
+    # toDeploy = set() #list of Policy-IDs to deploy
 
     def __init__(self, name, hash, serialNumber, policyId, aclObject):
+
+        ## Needs to be reset first!!!
+        self.name = None
+        self.hash = None
+        self.status = None  # New, Deployed
+        self.policies = dict() # Deployed Policies
+        self.acl = None
+        self.toAttach = set()
+        self.toDetach = set()
+        self.toDeploy = set()
+
+        logging.debug("[managedACL][__init__] {} {} {} {} {}".format(name, hash, serialNumber, policyId, aclObject))
+        logging.debug("[managedACL][__init__] Before Policies: {}".format(self.policies))
         self.name = name
         self.hash = hash
         if serialNumber != None:
             self.policies[serialNumber] = policyId
+            logging.debug("[managedACL][__init__] Add Policy: {} to Policy Dict: {}".format(policyId, self.policies))
         else:
-            self.policies = {}
+            self.policies = dict()
+            logging.debug("[managedACL][__init__] Reset Policies: {}".format(self.policies))
         self.acl = aclObject
 
         if serialNumber != None and policyId != None:
@@ -69,6 +84,7 @@ class managedACL():
         else:
             self.status = "NotApplied"
 
+        logging.debug("[managedACL][__init__] After Policies: {}".format(self.policies))
         return
 
     def appendSwitch(self, serialNumber, policyId):
@@ -126,7 +142,8 @@ class managedACL():
         "status": self.status,
         "policies": self.policies,
         "acl": self.acl.toDict(),
-        "cli": self.acl.toCli(),
+        #"cli": self.acl.toCli(),
+        "cli": self.acl.cli,
         "toAttach": list(self.toAttach),
         "toDetach": list(self.toDetach),
         "toDeploy": list(self.toDeploy)
@@ -218,22 +235,23 @@ class aclm():
     - updatePolicies
     - deployPolicies
     """
-    DCNM_FQDN = None
-    DCNM_TOKEN = None
-    DCNM_USERNAME = None
-    DCNM_PASSWORD = None
-    DCNM_SESSION = None
-    DCNM_EXPIRY = None
-
-    DCNM_SOURCE = "ACLM"
-
-    ### ACL Group Objects as dictionary by hash
-    ACLS = {}
-
-    #SELECTED_SERIAL_NUMBERS = None
-    SELECTED_FABRIC = None
-    POLICY_CACHE = None
-    FABRIC_INVENTORY = None
+    # DCNM_FQDN = None
+    # DCNM_TOKEN = None
+    # DCNM_USERNAME = None
+    # DCNM_PASSWORD = None
+    # DCNM_SESSION = None
+    # DCNM_EXPIRY = None
+    #
+    # DCNM_SOURCE = "ACLM"
+    #
+    # ### ACL Group Objects as dictionary by hash
+    # ACLS = {}
+    #
+    # #SELECTED_SERIAL_NUMBERS = None
+    # SELECTED_FABRIC = None
+    # POLICY_CACHE = {}
+    # FABRIC_INVENTORY = None
+    # ACLM_OBJECTS = {}
 
     def __init__(self, *args, **kwargs):
         # DCNM_FQDN, DCNM_USERNAME, DCNM_PASSWORD
@@ -241,6 +259,21 @@ class aclm():
         logging.info("[aclm][__init__] Initialising ACLM Object")
         #logging.debug(args)
         #logging.debug(kwargs)
+
+        ## Reset
+        self.DCNM_FQDN = None
+        self.DCNM_TOKEN = None
+        self.DCNM_USERNAME = None
+        self.DCNM_PASSWORD = None
+        self.DCNM_SESSION = None
+        self.DCNM_EXPIRY = None
+        self.DCNM_SOURCE = "ACLM"
+        self.ACLS = {}
+        self.SELECTED_FABRIC = None
+        self.POLICY_CACHE = {}
+        self.FABRIC_INVENTORY = None
+        self.ACLM_OBJECTS = {}
+
 
         try:
             logging.debug("[aclm][__init__]DCNM_FQDN: {}".format(kwargs['DCNM_FQDN']))
@@ -277,88 +310,37 @@ class aclm():
                 ## Set ACLM Objects from Session
                 self.ACLM_OBJECTS = kwargs.get('ACLM_OBJECTS')
 
-                #serialNumbers = ",".join(serialNumberList)
-
                 ### Fabric Selected, build policies
-                if updateCache:
+                if updateCache == True:
                     ## Update Policy Cache
                     logging.debug("[aclm][__init__] Updating Cache - Building Policies from Updated Switch List")
                     jsonList = self.getPolicyListBySwitches(serialNumberList)
                     self.processPolicies(jsonList)
-                    self.POLICY_CACHE = jsonList
+                    for entry in jsonList:
+                        self.POLICY_CACHE[entry['policyId']] = entry
+                    # self.POLICY_CACHE = jsonList
                     return
                 elif kwargs.get('POLICY_CACHE') == None:
                     ## Build New Policy Cache
                     logging.debug("[aclm][__init__] No Policy Cache - Building Policies from Updated Switch List")
                     jsonList = self.getPolicyListBySwitches(serialNumberList)
                     self.processPolicies(jsonList)
-                    self.POLICY_CACHE = jsonList
+                    for entry in jsonList:
+                        self.POLICY_CACHE[entry['policyId']] = entry
                     return
                 else:
                     ## Build from Policy Cache
                     logging.debug("[aclm][__init__] Building Policies from Cache")
                     self.POLICY_CACHE = kwargs['POLICY_CACHE']
-                    self.processPolicies(self.POLICY_CACHE)
+                    jsonList = []
+                    for policyId, entry in self.POLICY_CACHE.items():
+                        jsonList.append(entry)
+                    self.processPolicies(jsonList)
                     return
+
             else:
                 logging.debug("[aclm][__init__] No Selected Fabric - Not Building Policies")
                 return
-
-            # updateCache = False
-            # if kwargs.get('UPDATE_CACHE') == True:
-            #     updateCache = True
-            #     ## Update Policies & Rebuild
-            #
-            # if updateCache and kwargs.get('SELECTED_SERIAL_NUMBERS'):
-            #     logging.debug("[aclm][__init__] Updating Cache - Building Policies from Updated Switch List")
-            #     self.SELECTED_SERIAL_NUMBERS = kwargs.get('SELECTED_SERIAL_NUMBERS')
-            #     jsonList = self.getPolicyListBySwitches(self.SELECTED_SERIAL_NUMBERS)
-            #     self.processPolicies(jsonList)
-            #     self.POLICY_CACHE = jsonList
-            #     return
-            # elif kwargs.get('SELECTED_SERIAL_NUMBERS') and kwargs.get('POLICY_CACHE') == None:
-            #     logging.debug("[aclm][__init__] No Policy Cache - Building Policies from Updated Switch List")
-            #     self.SELECTED_SERIAL_NUMBERS = kwargs.get('SELECTED_SERIAL_NUMBERS')
-            #     jsonList = self.getPolicyListBySwitches(self.SELECTED_SERIAL_NUMBERS)
-            #     self.processPolicies(jsonList)
-            #     self.POLICY_CACHE = jsonList
-            #     return
-            # elif kwargs.get('SELECTED_SERIAL_NUMBERS') and kwargs.get('POLICY_CACHE'):
-            #     logging.debug("[aclm][__init__] Building Policies from Cache")
-            #     self.SELECTED_SERIAL_NUMBERS = kwargs.get('SELECTED_SERIAL_NUMBERS')
-            #     self.POLICY_CACHE = kwargs['POLICY_CACHE']
-            #     self.processPolicies(self.POLICY_CACHE)
-            #     return
-            # else:
-            #     logging.debug("[aclm][__init__] No Selected Switches - Not Building Policies")
-            #     return
-
-
-            #
-            # if kwargs.get('SELECTED_SERIAL_NUMBERS') and kwargs.get('POLICY_CACHE'):
-            #     # 'SELECTED_SERIAL_NUMBERS' in list(kwargs.keys()):
-            #     self.SELECTED_SERIAL_NUMBERS = kwargs['SELECTED_SERIAL_NUMBERS']
-            #     if updateCache:
-            #         logging.debug("[aclm][__init__] Building Policies from Updated Switch List")
-            #         jsonList = self.getPolicyListBySwitches(self.SELECTED_SERIAL_NUMBERS)
-            #         self.processPolicies(jsonList)
-            #         self.POLICY_CACHE = jsonList
-            #         return
-            #     else:
-            #         logging.debug("[aclm][__init__] Building Policies from Cache")
-            #         self.POLICY_CACHE = kwargs['POLICY_CACHE']
-            #         self.processPolicies(self.POLICY_CACHE)
-            #         return
-            # elif kwargs.get('SELECTED_SERIAL_NUMBERS') and kwargs.get('POLICY_CACHE') == None:
-            #     self.SELECTED_SERIAL_NUMBERS = kwargs['SELECTED_SERIAL_NUMBERS']
-            #     if updateCache:
-            #         logging.debug("[aclm][__init__] Building Policies from Updated Switch List")
-            #         jsonList = self.getPolicyListBySwitches(self.SELECTED_SERIAL_NUMBERS)
-            #         self.processPolicies(jsonList)
-            #         self.POLICY_CACHE = jsonList
-            #         return
-            # else:
-            #     return
 
         else:
             logging.warning("[aclm][__init__] No DCNM_TOKEN - Not Logged In")
@@ -457,7 +439,8 @@ class aclm():
                 logging.debug("[aclm][dcnmApiWrapper] Json: {}".format(r.json()))
                 return r.json()
             except:
-                return
+                logging.debug("[aclm][dcnmApiWrapper] Text: {}".format(r.text))
+                return True
 
     def getFabrics(self):
         path = "/control/fabrics"
@@ -589,32 +572,62 @@ class aclm():
             logging.debug("[aclm][processPolicies] Policy Content: {}".format(aclContent))
 
             newAcl = acl.acl_group()
-            newAcl.fromCli(aclContent)
-            outputObj = json.loads(newAcl.json())
 
-            logging.debug("[aclm][processPolicies] JSON: {}".format(outputObj))
+            ## Build ACL Content from Policy CLI
+            newAcl.fromCli(aclContent)
+
+            #outputObj = json.loads(newAcl.json())
+
+            logging.debug("[aclm][processPolicies] JSON: {}".format(newAcl.toDict()))
             #logging.debug("ACL Dict: {}".format(self.ACLS))
 
-            hash = outputObj['hash']
+            #hash = outputObj['hash']
+            newName = newAcl.name
+            newHash = newAcl.hash
+
             keylist = list(self.ACLS.keys())
             logging.debug("[aclm][processPolicies] Key List: {}".format(keylist))
-            logging.debug("[aclm][processPolicies] Hash: {}".format(hash))
+            logging.debug("[aclm][processPolicies] ACL Hash: {}".format(newHash))
 
             try:
-                self.ACLS[hash].appendSwitch(output['serialNumber'], output['policyId'])
-                logging.info("[aclm][processPolicies] Added {} to Managed ACL Object: {}".format(output['serialNumber'],self.ACLS))
+                existingInst = self.ACLS[newHash]
+                logging.debug("[aclm][processPolicies] Existing Policies: {}".format(existingInst.policies))
+                existingInst.appendSwitch(output['serialNumber'], output['policyId'])
+                logging.info("[aclm][processPolicies] Policy: {} - Added {} to Managed ACL Object: Hash: {}".format(output['policyId'], output['serialNumber'], newHash))
+                logging.debug("[aclm][processPolicies] Updated Policies: {}".format(existingInst.policies))
 
             except KeyError:
-                self.ACLS[hash] = managedACL(outputObj['name'], hash, output['serialNumber'], output['policyId'], newAcl)
-                logging.info("[aclm][processPolicies] Created new Managed ACL Object from Policy: {}".format(self.ACLS))
+                ## Not instaniating new .policies dict !!!
 
+                newAclInst = managedACL(newName, newHash, output['serialNumber'], output['policyId'], newAcl)
+                # logging.debug("[aclm][processPolicies] New Managed ACL Object Policies: {}".format(newAclInst.policies))
+                self.ACLS[newHash] = newAclInst
+                logging.info("[aclm][processPolicies] Created new Managed ACL Object from Policy {}. Hash: {}".format(output['policyId'], newHash))
+                # logging.debug("[aclm][processPolicies] After ACLS Policies: {}".format(self.ACLS[newHash].policies))
+
+        ## Update toDeploy list
+        self.updateDeployList()
+
+        return
+
+    def updateDeployList(self):
         ## Check ACLM Session to set toDeploy
+        logging.debug("[aclm][updateDeployList] Updating toDeploy from session objects")
+        logging.debug("[aclm][updateDeployList] ACLM_OBJECTS: {}".format(self.ACLM_OBJECTS))
+        logging.debug("[aclm][updateDeployList] ACLS: {}".format(self.ACLS))
+
+        """
+        Hash changes!
+        """
+
         for hash, sessionDict in self.ACLM_OBJECTS.items():
             if hash in list(self.ACLS.keys()):
                 ## Update toDeploy
-                logging.debug("[aclm][processPolicies] Updating toDeploy from session objects")
+                logging.debug("[aclm][updateDeployList] Hash: {}".format(hash))
                 self.ACLS[hash].toDeploy = set(sessionDict['toDeploy'])
-
+                logging.debug("[aclm][updateDeployList] toDeploy: {}".format(self.ACLS[hash].toDeploy))
+            else:
+                logging.debug("[aclm][updateDeployList] Hash {} not in ACLS".format(hash))
         return
 
     def updatePolicies(self, managedACL ):
@@ -631,7 +644,8 @@ class aclm():
             deltaToAttach = set()
             for serialNumber in managedACL.toAttach:
                 ## Add New Policy
-                payload = self.buildPolicyPayload(serialNumber, managedACL.acl.toCli())
+                #payload = self.buildPolicyPayload(serialNumber, managedACL.acl.toCli())
+                payload = self.buildPolicyPayload(serialNumber, managedACL.acl.cli)
                 output = self.postNewPolicy(payload)
                 logging.debug("[aclm][updatePolicies] New Policy Response: {}".format(output))
                 policyId = output['policyId']
@@ -641,6 +655,7 @@ class aclm():
                 managedACL.policies[serialNumber] = policyId
 
                 ## Mark Policy for Deployment
+                logging.debug("[aclm][updatePolicies] Adding {} to toDeploy".format(policyId))
                 managedACL.toDeploy.add(policyId)
 
                 ## Remove for toAttach set
@@ -662,15 +677,17 @@ class aclm():
                 logging.debug("[aclm][updatePolicies] Serial Number: {}".format(serialNumber))
                 policyId = managedACL.policies[serialNumber]
 
-                # ## Delete Policy
-                # output = self.deletePolicyById(policyId)
-                # logging.info("[aclm][updatePolicies] Policy - {} - Deleted from Serial Number: {}".format(policyId, serialNumber))
+                ## Delete Policy
+                output = self.deletePolicyById(policyId)
+                logging.info("[aclm][updatePolicies] Policy - {} - Deleted from Serial Number: {}".format(policyId, serialNumber))
 
-                ## Mark Policy for Delete
-                output = self.putMarkPolicyDeleteById(policyId)
+                # ## Mark Policy for Delete
+                # Don't like..
+                # output = self.putMarkPolicyDeleteById(policyId)
 
-                ## Mark Policy for Deployment
-                managedACL.toDeploy.add(policyId)
+                # ## Mark Policy for Deployment
+                # logging.debug("[aclm][updatePolicies] Adding {} to toDeploy".format(policyId))
+                # managedACL.toDeploy.add(policyId)
 
                 ## Remove from managedACL policy dict.
                 managedACL.policies.pop(serialNumber)
@@ -678,29 +695,36 @@ class aclm():
                 ## Remove for toDetach set
                 deltaToDetach.add(serialNumber)
 
-            ## Update toAttach
+            ## Update toDetach
             managedACL.toDetach.difference_update(deltaToDetach)
 
         else:
-            logging.info("[aclm][updatePolicies] No switches dettached from ACL")
+            logging.info("[aclm][updatePolicies] No switches detached from ACL")
 
         ## Check if empty!
         if len(managedACL.policies) == 0:
             logging.warning("[aclm][updatePolicies] No switches attached to ACL.  This ACL will be totally removed")
-            logging.debug(managedACL.acl.toCli())
+            logging.debug("[aclm][updatePolicies] ACL: {}".format(managedACL.acl.cli))
             managedACL.status = "NotApplied"
 
         ## Check Content Hash
         if managedACL.acl.hash != managedACL.hash:
+            logging.info("[aclm][updatePolicies] ACL content has changed.  Updating associated policies.")
             ## Content has changed - Push update
 
             ## Iterate Existing Switch Policies
             for serialNumber, policyId in managedACL.policies.items():
                 ## Get Policy
                 logging.debug("[aclm][updatePolicies] Serial Number: {}".format(serialNumber))
-                policy = self.getPolicyById(policyId)
+
+
+                policy = self.POLICY_CACHE[policyId]
+                # policy = self.getPolicyById(policyId)
+
+
                 logging.debug("[aclm][updatePolicies] Existing Policy: {}".format(policy))
-                updatedCli = managedACL.acl.toCli()
+                #updatedCli = managedACL.acl.toCli()
+                updatedCli = managedACL.acl.cli
                 logging.debug("[aclm][updatePolicies] Updated CLI: {}".format(updatedCli))
 
                 ## Update Policy
@@ -709,6 +733,7 @@ class aclm():
                 output = self.putUpdatedPolicyById(policyId, policy)
 
                 ## Mark Policy for Deployment
+                logging.debug("[aclm][updatePolicies] Adding {} to toDeploy".format(policyId))
                 managedACL.toDeploy.add(policyId)
 
             return
@@ -742,8 +767,21 @@ class aclm():
             if hash in list(self.ACLS.keys()):
                 logging.debug("[aclm][buildPending] Pending ACL already in ACL dictonary - Skipping")
                 continue
-            self.createAclm(aclmDict)
-        return
+            else:
+                # self.ACLS[hash] = aclmDict
+                newACL = self.createAclm(aclmDict)
+            #
+            # ### Set Transient Details from Pending Dict
+            # logging.debug("[aclm][buildPending] New ACL Hash: {}".format(newACL.hash))
+            # if pendingDict.get('toAttach'):
+            #     self.ACLS[newACL.hash].toAttach = set(pendingDict.get('toAttach'))
+            # if pendingDict.get('toDetach'):
+            #     self.ACLS[newACL.hash].toDetach = set(pendingDict.get('toDetach'))
+            # if pendingDict.get('toDeploy'):
+            #     self.ACLS[newACL.hash].toDeploy = set(pendingDict.get('toDeploy'))
+                logging.debug("[aclm][buildPending] New ACL: {}".format(self.ACLS[newACL.hash]))
+
+        return newACL.hash
 
     def createAclm(self, jsonInput):
         """
@@ -766,9 +804,9 @@ class aclm():
 
         if hash in list(self.ACLS.keys()):
             ## Entry already exists
-            #raise Exception("Cannot create new Managed ACL - ACL already exists")
-            logging.error("[aclm][createAclm] Cannot create new Managed ACL - ACL already exists. Returning existing ACL")
-            return self.ACLS[hash]
+            raise Exception("Cannot create new Managed ACL - ACL already exists")
+            # logging.error("[aclm][createAclm] Cannot create new Managed ACL - ACL already exists. Returning existing ACL")
+            # return self.ACLS[hash]
 
         else:
             self.ACLS[hash] = managedACL(outputObj['name'], hash, None, None, newAclg)
@@ -786,17 +824,25 @@ class aclm():
 
         managedACL = self.ACLS[hash]
 
+
         deletedPolicies = []
         if managedACL.status == "Applied":
             # Delete Policies from DCNM
-            for serialNumber, policyId in managedACL.polices.items():
-                self.putMarkPolicyDeleteById(policyId)
+            for serialNumber, policyId in managedACL.policies.items():
+
+                ## Delete Policy
+                output = self.deletePolicyById(policyId)
+                logging.info("[aclm][deleteAclm] Policy - {} - Deleted from Serial Number: {}".format(policyId, serialNumber))
+                # self.putMarkPolicyDeleteById(policyId)
                 deletedPolicies.append(policyId)
 
-            # (Un)deploy Policies
-            self.deployPolicies(deletedPolicies)
+            # # (Un)deploy Policies
+            # self.deployPolicies(deletedPolicies)
 
         # Remove from ACLS
         self.ACLS.pop(hash)
 
-        return {"DeletedOk": hash, "DeletedPolicies": deletedPolicies}
+        output = self.postDeployPolicyList(deletedPolicies)
+
+
+        return {"deletedOk": hash, "deletedPolicies": deletedPolicies, "deployOutput": output}

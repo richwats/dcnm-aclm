@@ -75,7 +75,7 @@ def buildAclmFromSession(updateCache = False, clearPending = False):
     session['UPDATE_CACHE'] = updateCache
     flask_aclm = aclm(**session)
 
-    ## Reset False
+    ## Reset Update Cache
     session['UPDATE_CACHE'] = False
 
     ## Update JSON Cache
@@ -87,7 +87,7 @@ def buildAclmFromSession(updateCache = False, clearPending = False):
     ## Update Fabric Inventory
     session['FABRIC_INVENTORY'] = flask_aclm.FABRIC_INVENTORY
 
-    if clearPending:
+    if clearPending == True:
         session['PENDING'] = {}
 
     else:
@@ -149,6 +149,10 @@ aclgModel = api.model('aclgModel', {
 deployOuputModel = api.model('deployOuputModel', {
     'switchSN': fields.String,
     'successPTIList': fields.String
+})
+
+policyListModel = api.model('policyListModel', {
+    'policyList': fields.List(fields.String, skip_none=True),
 })
 
 logonModel = api.model('logonModel', {
@@ -370,21 +374,21 @@ class listFabrics(Resource):
         return output
 
 
-@api.route('/fabric/selectFabric')
+@api.route('/fabric/selectFabric/<string:fabricName>')
 class selectFabric(Resource):
     @api.doc(security='session')
-    @api.param('fabricName','Fabric scope for ACLs', type=str, default="DC3")
+    # @api.param('fabricName','Fabric scope for ACLs', type=str, default="DC3")
     @api.param('updateCache','Force update of JSON policies cache', type=bool, default=False)
-    def get(self):
+    def get(self, fabricName):
         """
         Builds Managed ACL Objects for switches in selected fabric and returns dictonary of hash IDs
         """
         parser = reqparse.RequestParser()
-        parser.add_argument('fabricName', required=True, type=str, location='args')
+        # parser.add_argument('fabricName', required=True, type=str, location='args')
         parser.add_argument('updateCache', type=inputs.boolean, location='args')
         args = parser.parse_args()
         logging.debug("[selectFabric][get] Parsed Arguments: {}".format(args))
-        fabricName = args['fabricName']
+        # fabricName = args['fabricName']
         updateCache = args['updateCache']
 
         # ## Get Currently Selected Switches
@@ -410,54 +414,8 @@ class selectFabric(Resource):
         # session["FABRIC_INVENTORY"] = output
 
 
-        output = {}
-
-        ## Build default view of ACLM Objects
-        keylist = list(flask_aclm.ACLS.keys())
-        for key in keylist:
-            logging.debug("[selectFabric][get] Processing Key: {}".format(key))
-            managedACL = flask_aclm.ACLS[key]
-            session['ACLM_OBJECTS'][key] = {
-                'name': managedACL.name,
-                'hash': key,
-                'status': managedACL.status,
-                # 'toAttach': list(postUpdateAcl.toAttach),
-                # 'toDetach': list(postUpdateAcl.toDetach),
-                'toDeploy': list(managedACL.toDeploy),
-                }
-
-        ## Return Output
-        output["acls"] = session['ACLM_OBJECTS']
-        output["inventory"] = session['FABRIC_INVENTORY']
-        return output
-
-    @api.doc(security='session')
-    # @api.marshal_with(logonResponse)
-    @api.expect(selectFabricModel)
-    def post(self):
-        """
-        Builds Managed ACL Objects for switches in selected fabric and returns dictonary of hash IDs
-        """
-        parser = reqparse.RequestParser()
-        parser.add_argument('fabricName', required=True, type=str)
-        parser.add_argument('updateCache', type=inputs.boolean)
-        args = parser.parse_args()
-        logging.debug("[selectFabric][post] Parsed Arguments: {}".format(args))
-        fabricName = args['fabricName']
-        updateCache = args['updateCache']
-
-        ## Build ACLM
-        if fabricName != session['SELECTED_FABRIC'] and len(session['PENDING']) > 0:
-            clearPending = True
-            logging.warning("[selectFabric][post] New fabric selected clearing pending changes.")
-        else:
-            clearPending = False
-
-        ## Set Selected Fabric Name
-        session['SELECTED_FABRIC'] = fabricName
+        ## Clear ACLM Objects
         session['ACLM_OBJECTS'] = {}
-        flask_aclm = buildAclmFromSession(updateCache, clearPending)
-
         output = {}
 
         ## Build default view of ACLM Objects
@@ -478,9 +436,57 @@ class selectFabric(Resource):
         output["acls"] = session['ACLM_OBJECTS']
         output["inventory"] = session['FABRIC_INVENTORY']
         return output
+
+    # @api.doc(security='session')
+    # # @api.marshal_with(logonResponse)
+    # @api.expect(selectFabricModel)
+    # def post(self):
+    #     """
+    #     Builds Managed ACL Objects for switches in selected fabric and returns dictonary of hash IDs
+    #     """
+    #     parser = reqparse.RequestParser()
+    #     parser.add_argument('fabricName', required=True, type=str)
+    #     parser.add_argument('updateCache', type=inputs.boolean)
+    #     args = parser.parse_args()
+    #     logging.debug("[selectFabric][post] Parsed Arguments: {}".format(args))
+    #     fabricName = args['fabricName']
+    #     updateCache = args['updateCache']
+    #
+    #     ## Build ACLM
+    #     if fabricName != session['SELECTED_FABRIC'] and len(session['PENDING']) > 0:
+    #         clearPending = True
+    #         logging.warning("[selectFabric][post] New fabric selected clearing pending changes.")
+    #     else:
+    #         clearPending = False
+    #
+    #     ## Set Selected Fabric Name
+    #     session['SELECTED_FABRIC'] = fabricName
+    #     session['ACLM_OBJECTS'] = {}
+    #     flask_aclm = buildAclmFromSession(updateCache, clearPending)
+    #
+    #     output = {}
+    #
+    #     ## Build default view of ACLM Objects
+    #     keylist = list(flask_aclm.ACLS.keys())
+    #     for key in keylist:
+    #         logging.debug("[selectFabric][get] Processing Key: {}".format(key))
+    #         managedACL = flask_aclm.ACLS[key]
+    #         session['ACLM_OBJECTS'][key] = {
+    #             'name': managedACL.name,
+    #             'hash': key,
+    #             'status': managedACL.status,
+    #             # 'toAttach': list(postUpdateAcl.toAttach),
+    #             # 'toDetach': list(postUpdateAcl.toDetach),
+    #             'toDeploy': list(managedACL.toDeploy),
+    #             }
+    #
+    #     ## Return Output
+    #     output["acls"] = session['ACLM_OBJECTS']
+    #     output["inventory"] = session['FABRIC_INVENTORY']
+    #     return output
 
 @api.route('/aclm/')
-@api.param('autoDeploy','Automatically deploy new policies', type=inputs.boolean, default=False)
+@api.param('autoDeploy','Automatically deploy new policies', type=bool, default=False)
 class newAclm(Resource):
     @api.doc(security='session')
     @api.marshal_with(newAclModel)
@@ -496,24 +502,8 @@ class newAclm(Resource):
             logging.debug("[newAclm][post] Payload: {}".format(api.payload))
             managedACL = flask_aclm.createAclm(api.payload)
 
-            ### Add to Session?
-            # if session.get('PENDING') == None:
-            #     session['PENDING'] = []
-            # elif type(session['PENDING']) != type(list()):
-            #     session['PENDING'] = []
-
             session['PENDING'][managedACL.hash] = managedACL.toDict()
-            logging.debug("[newAclm][post] Current Session Pending: {}".format(session['PENDING']))
-
-            # ## Update Session ACLM Dict
-            # session['ACLM_OBJECTS'][newHash] = {
-            #     'name': postUpdateAcl.name,
-            #     'hash': newHash,
-            #     'status': postUpdateAcl.status,
-            #     # 'toAttach': list(postUpdateAcl.toAttach),
-            #     # 'toDetach': list(postUpdateAcl.toDetach),
-            #     'toDeploy': list(postUpdateAcl.toDeploy),
-            #     }
+            logging.debug("[newAclm][post] Current Pending ACLs in Session: {}".format(session['PENDING']))
 
             return managedACL.toDict()
 
@@ -580,38 +570,56 @@ class aclmByHash(Resource):
                 ## Assume JSON
                 updatedACL = managedACL.updateFromJson(api.payload)
 
+            ## Get Updated Hash
+            newHash = updatedACL['acl']['hash']
+
             ## Update Policies in DCNM
-            flask_aclm.updatePolicies(managedACL)
+            if len(managedACL.policies) > 0:
+                flask_aclm.updatePolicies(managedACL)
+            else:
+                ### Assume Pending State - Update Pending
+                session['PENDING'].pop(hash)
+                session['PENDING'][newHash] = updatedACL
+
+            ## Copy Old Hash to New Hash for toDeploy
+            if hash != newHash:
+                del session['ACLM_OBJECTS'][hash]
+                session['ACLM_OBJECTS'][newHash] = {
+                    'name': updatedACL['name'],
+                    'hash': newHash,
+                    'status': updatedACL['status'],
+                    'toDeploy': list(managedACL.toDeploy),
+                }
+
+            ## Clear Cache & Rebuild
+            flask_aclm = buildAclmFromSession(True, False)
+
+            ## Get Updated Hash
+            postUpdateAcl = flask_aclm.ACLS[newHash]
 
             ## AutoDeploy
             deployOutput = None
-            if autoDeploy and len(managedACL.toDeploy) > 0:
-                deployOutput = flask_aclm.deployPolicies(managedACL)
+            if autoDeploy and len(postUpdateAcl.toDeploy) > 0:
+                deployOutput = flask_aclm.deployPolicies(postUpdateAcl)
 
             ## Remove Pending ACL
             if managedACL.hash in list(session['PENDING'].keys()):
                 session['PENDING'].pop(managedACL.hash)
 
-            ## Rebuild Session ACLM Objects
-            keylist = list(flask_aclm.ACLS.keys())
-            for key in keylist:
-                logging.debug("[aclmByHash][put] Rebuilding Session ACLM Objects: {}".format(key))
-                managedACL = flask_aclm.ACLS[key]
-                session['ACLM_OBJECTS'][key] = {
-                 'name': managedACL.name,
-                 'hash': key,
-                 'status': managedACL.status,
-                 # 'toAttach': list(postUpdateAcl.toAttach),
-                 # 'toDetach': list(postUpdateAcl.toDetach),
-                 'toDeploy': list(managedACL.toDeploy),
-                 }
+            # ## Rebuild Session ACLM Objects
+            # keylist = list(flask_aclm.ACLS.keys())
+            # for key in keylist:
+            #     logging.debug("[aclmByHash][put] Rebuilding Session ACLM Objects: {}".format(key))
+            #     managedACL = flask_aclm.ACLS[key]
+            #     session['ACLM_OBJECTS'][key] = {
+            #      'name': managedACL.name,
+            #      'hash': key,
+            #      'status': managedACL.status,
+            #      # 'toAttach': list(postUpdateAcl.toAttach),
+            #      # 'toDetach': list(postUpdateAcl.toDetach),
+            #      'toDeploy': list(managedACL.toDeploy),
+            #      }
 
-            ## Clear Cache
-            flask_aclm = buildAclmFromSession(True)
-
-            ## Get Updated Hash
-            newHash = updatedACL['acl']['hash']
-            postUpdateAcl = flask_aclm.ACLS[newHash]
             #logging.debug("[aclmByHash][put] Post Update ACL Object: {}".format(postUpdateAcl))
 
             # #return updatedACL.toDict()
@@ -677,6 +685,125 @@ class aclmByHash(Resource):
             api.abort(500, e.__doc__, status = str(e), statusCode = "500")
 
 
+@api.route('/aclm/<string:hash>/deploy')
+class deployAclmByHash(Resource):
+    @api.doc(security='session')
+    @api.marshal_with(managedAclModel)
+    @api.expect(managedAclModel)
+    # @api.param('autoDeploy','Automatically deploy updated policies', type=bool, default=False)
+    # @api.param('update','Update by CLI or JSON', type=str)
+    def post(self, hash):
+        """
+        Deploy policies for ACL for selected hash ID
+        """
+        try:
+            # ## Get Args
+            # parser = reqparse.RequestParser()
+            # parser.add_argument('autoDeploy', type=inputs.boolean, location='args')
+            # parser.add_argument('update', type=str, location='args')
+            # args = parser.parse_args()
+            # autoDeploy = args['autoDeploy']
+            # update = args['update']
+
+            ## Build ACLM
+            flask_aclm = buildAclmFromSession()
+
+            # logging.info("[deployAclmByHash][post] Update Managed ACL. Hash:{}".format(hash))
+            # logging.debug("[deployAclmByHash][post] Payload: {}".format(api.payload))
+
+            ## Get Existing Managed ACL Object
+            managedACL = flask_aclm.ACLS[hash]
+            logging.debug("[deployAclmByHash][post] Initial ACL Object: {}".format(managedACL))
+            logging.debug("[deployAclmByHash][post] toDeploy: {}".format(managedACL.toDeploy))
+
+            deployOutput = flask_aclm.deployPolicies(managedACL)
+
+            ## Remove Pending ACL
+            if managedACL.hash in list(session['PENDING'].keys()):
+                session['PENDING'].pop(managedACL.hash)
+
+            ## Rebuild Session ACLM Objects
+            session['ACLM_OBJECTS'] = {}
+            keylist = list(flask_aclm.ACLS.keys())
+            for key in keylist:
+                logging.debug("[deployAclmByHash][put] Rebuilding Session ACLM Objects: {}".format(key))
+                managedACL = flask_aclm.ACLS[key]
+                session['ACLM_OBJECTS'][key] = {
+                 'toDeploy': list(managedACL.toDeploy),
+                 }
+
+            ### ACLM Objects
+            logging.debug("[deployAclmByHash][put] Updated ACLM Object: {}".format(session['ACLM_OBJECTS']))
+
+            ## Clear Cache
+            flask_aclm = buildAclmFromSession(True)
+
+            ## Get Updated Hash
+            postUpdateAcl = flask_aclm.ACLS[hash]
+            output = postUpdateAcl.toDict()
+            output['deployOutput'] = deployOutput
+            logging.debug("[deployAclmByHash][post] Post Update ACL Object: {}".format(output))
+            return output
+
+        except Exception as e:
+            logging.error("[deployAclmByHash][post] Error: {}".format(e))
+            api.abort(500, e.__doc__, status = str(e), statusCode = "500")
+
+
+# @api.route('/aclm/deployPolicies')
+# # @api.param('autoDeploy','Automatically deploy new policies', type=bool, default=False)
+# class deployPolicies(Resource):
+#     @api.doc(security='session')
+#     # @api.marshal_with(newAclModel)
+#     # @api.expect(policyListModel)
+#     def post(self):
+#         """
+#         Create New Managed ACL
+#         """
+#         try:
+#             parser = reqparse.RequestParser()
+#             parser.add_argument('policyList', required=True, type=str) # parser.add_argument('name', action='append')
+#             args = parser.parse_args()
+#             logging.debug("[deployPolicies][post] Parsed Arguments: {}".format(args))
+#             policyList = args['policyList']
+#
+#             ## Build ACLM
+#             flask_aclm = buildAclmFromSession()
+#
+#             flask_aclm.deployPolicies(managedACL)
+#
+#
+#             # logging.info("[newAclm][post] Create New Managed ACL")
+#             # logging.debug("[newAclm][post] Payload: {}".format(api.payload))
+#
+#
+#             # managedACL = flask_aclm.createAclm(api.payload)
+#
+#             ### Add to Session?
+#             # if session.get('PENDING') == None:
+#             #     session['PENDING'] = []
+#             # elif type(session['PENDING']) != type(list()):
+#             #     session['PENDING'] = []
+#
+#             session['PENDING'][managedACL.hash] = managedACL.toDict()
+#             logging.debug("[newAclm][post] Current Session Pending: {}".format(session['PENDING']))
+#
+#             # ## Update Session ACLM Dict
+#             # session['ACLM_OBJECTS'][newHash] = {
+#             #     'name': postUpdateAcl.name,
+#             #     'hash': newHash,
+#             #     'status': postUpdateAcl.status,
+#             #     # 'toAttach': list(postUpdateAcl.toAttach),
+#             #     # 'toDetach': list(postUpdateAcl.toDetach),
+#             #     'toDeploy': list(postUpdateAcl.toDeploy),
+#             #     }
+#
+#             return managedACL.toDict()
+#
+#         except Exception as e:
+#             logging.error("[newAclm][post] Error: {}".format(e))
+#             api.abort(500, e.__doc__, status = str(e), statusCode = "500")
+
 @api.route('/test/session')
 class dumpSession(Resource):
     @api.doc(security='session')
@@ -692,60 +819,3 @@ class dumpSession(Resource):
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-"""
-#export FLASK_APP=flask.py; export FLASK_DEBUG=1
-#flask run -h 0.0.0.0
-
-jsonList = testACLM.getPolicyListBySwitches(["FDO22192XCF","FDO21521S70"])
-#@api.doc(responses={ 200: 'OK', 400: 'Invalid Argument' }, params={ 'serialNumberList': 'List of device serial numbers' })
-
-@api.route('/policy/policyListBySwitches')
-class getPolicyListBySwitches(Resource):
-	def get(self, serialNumberList):
-        return {'hello: 'world'}
-        # logging.info("getPolicyListBySwitches: {}".format(serialNumberList))
-        # try:
-        #     jsonList = flask_aclm.getPolicyListBySwitches(serialNumberList)
-        # except Exception as e:
-        #     api.abort(400, e.__doc__, status = "Invalid Argument", statusCode = "400")
-        #
-        # # return {
-        # # 	"status": "Got new data"
-        # # }
-        # return jsonList
-
-"""
-
-# app2 = Api(app = flask_app,
-#             version = "0.1",
-#             title = "DCNM ACL Manager REST API",
-#             description = "Manage ACLs across DCNM managed fabrics"
-#           )
-#
-# aclm_namespace = app2.namespace('aclm', description='ACL Manager APIs')
-#
-# ### Setup Session ###
-#
-# ### Build/Load ACLM Object ###
-# flask_aclm =  aclm()
-#
-# @aclm_namespace.route("/policy/policyListBySwitches")
-# class getPolicyListBySwitches(Resource):
-#     """
-#     jsonList = testACLM.getPolicyListBySwitches(["FDO22192XCF","FDO21521S70"])
-#     """
-#     @app2.doc(responses={ 200: 'OK',
-#                          400: 'Invalid Argument' },
-# 			 params={ 'serialNumberList': 'List of device serial numbers' })
-# 	def get(self, serialNumberList):
-#         logging.info("getPolicyListBySwitches: {}".format(serialNumberList))
-#         try:
-#             jsonList = flask_aclm.getPolicyListBySwitches(serialNumberList)
-#         except Exception as e:
-#             aclm_namespace.abort(400, e.__doc__, status = "Invalid Argument", statusCode = "400")
-#
-#         # return {
-# 		# 	"status": "Got new data"
-# 		# }
-#         return jsonList
