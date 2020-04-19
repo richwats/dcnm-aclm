@@ -192,6 +192,9 @@ function deleteAcl(hash){
   SELECTED_ACL = null
   localStorage.removeItem('SELECTED_ACL')
 
+  // Hide aclTable
+  $('#aclTableDisplay').addClass('d-none')
+
 }
 
 function deleteAclEntry(position){
@@ -802,7 +805,7 @@ $(document).ready(function(){
     resp = aclmApiWrapper("put","/aclm/"+payload.hash+"?update=json", payload, refreshFabric)
 
     if (resp){
-      $('#aclEntryModal').modal('hide')
+      $('#selectedDevicesModal').modal('hide')
     }
 
   });

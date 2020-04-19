@@ -576,10 +576,22 @@ class aclmByHash(Resource):
             ## Update Policies in DCNM
             if len(managedACL.policies) > 0:
                 flask_aclm.updatePolicies(managedACL)
+            elif managedACL.status == "NotApplied" and len(managedACL.toAttach) > 0:
+                ## New ACLM - waiting to attach!
+                flask_aclm.updatePolicies(managedACL)
+                ## Remove from Pending if now Applied
+                if managedACL.status == "Applied":
+                    session['PENDING'].pop(hash)
             else:
                 ### Assume Pending State - Update Pending
                 session['PENDING'].pop(hash)
                 session['PENDING'][newHash] = updatedACL
+
+            ## Check now NotApplied
+            if len(managedACL.policies) == 0:
+                logging.warning("[aclmByHash][put] No switches attached to ACL.  This ACL will be moved to pending")
+                managedACL.status = "NotApplied"
+                session['PENDING'][newHash] = managedACL.toDict()
 
             ## Copy Old Hash to New Hash for toDeploy
             if hash != newHash:
@@ -602,9 +614,9 @@ class aclmByHash(Resource):
             if autoDeploy and len(postUpdateAcl.toDeploy) > 0:
                 deployOutput = flask_aclm.deployPolicies(postUpdateAcl)
 
-            ## Remove Pending ACL
-            if managedACL.hash in list(session['PENDING'].keys()):
-                session['PENDING'].pop(managedACL.hash)
+            # ## Remove Pending ACL
+            # if managedACL.hash in list(session['PENDING'].keys()):
+            #     session['PENDING'].pop(managedACL.hash)
 
             # ## Rebuild Session ACLM Objects
             # keylist = list(flask_aclm.ACLS.keys())

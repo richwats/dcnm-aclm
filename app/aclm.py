@@ -701,11 +701,12 @@ class aclm():
         else:
             logging.info("[aclm][updatePolicies] No switches detached from ACL")
 
-        ## Check if empty!
-        if len(managedACL.policies) == 0:
-            logging.warning("[aclm][updatePolicies] No switches attached to ACL.  This ACL will be totally removed")
-            logging.debug("[aclm][updatePolicies] ACL: {}".format(managedACL.acl.cli))
-            managedACL.status = "NotApplied"
+        # ## Check if empty!
+        # if len(managedACL.policies) == 0:
+        #     logging.warning("[aclm][updatePolicies] No switches attached to ACL.  This ACL will be moved to pending")
+        #     # logging.debug("[aclm][updatePolicies] ACL: {}".format(managedACL.acl.cli))
+        #     managedACL.status = "NotApplied"
+        #     # session['PENDING'][managedACL.hash] = managedACL
 
         ## Check Content Hash
         if managedACL.acl.hash != managedACL.hash:
@@ -769,6 +770,7 @@ class aclm():
                 continue
             else:
                 # self.ACLS[hash] = aclmDict
+                logging.debug("[aclm][buildPending] Building Pending ACL: {}".format(aclmDict))
                 newACL = self.createAclm(aclmDict)
             #
             # ### Set Transient Details from Pending Dict
@@ -810,6 +812,22 @@ class aclm():
 
         else:
             self.ACLS[hash] = managedACL(outputObj['name'], hash, None, None, newAclg)
+
+            ### toAttach
+            if jsonInput.get('toAttach') and len(jsonInput['toAttach']) > 0:
+                self.ACLS[hash].toAttach = set(jsonInput['toAttach'])
+                logging.debug("[aclm][createAclm] Updating toAttach {}".format(self.ACLS[hash].toAttach))
+
+            ### toDetach
+            if jsonInput.get('toDetach') and len(jsonInput['toDetach']) > 0:
+                self.ACLS[hash].toDetach = set(jsonInput['toDetach'])
+                logging.debug("[aclm][createAclm] Updating toDetach {}".format(self.ACLS[hash].toDetach))
+
+            ### toDeploy
+            if jsonInput.get('toDeploy') and len(jsonInput['toDeploy']) > 0:
+                self.ACLS[hash].toDeploy = set(jsonInput['toDeploy'])
+                logging.debug("[aclm][createAclm] Updating toDeploy {}".format(self.ACLS[hash].toDeploy))
+
             logging.info("[aclm][createAclm] Created new Managed ACL Object from JSON: {}".format(self.ACLS[hash]))
             return self.ACLS[hash]
 
@@ -826,6 +844,7 @@ class aclm():
 
 
         deletedPolicies = []
+        output = None
         if managedACL.status == "Applied":
             # Delete Policies from DCNM
             for serialNumber, policyId in managedACL.policies.items():
@@ -838,11 +857,9 @@ class aclm():
 
             # # (Un)deploy Policies
             # self.deployPolicies(deletedPolicies)
+            output = self.postDeployPolicyList(deletedPolicies)
 
         # Remove from ACLS
         self.ACLS.pop(hash)
-
-        output = self.postDeployPolicyList(deletedPolicies)
-
 
         return {"deletedOk": hash, "deletedPolicies": deletedPolicies, "deployOutput": output}

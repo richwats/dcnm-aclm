@@ -376,7 +376,7 @@ class acl_group():
             return json.dumps(jsonDict, sort_keys=True, indent=4, separators=(',', ': '))
         else:
             logging.debug("[acl_group][toJson] ACL Dict: {}".format(jsonDict))
-            logging.debug("[acl_group][toJson] JSON: {}".format(json.dumps(jsonDict)))
+            # logging.debug("[acl_group][toJson] JSON: {}".format(json.dumps(jsonDict)))
             return json.dumps(jsonDict)
             #return jsonDict
 

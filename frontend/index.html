@@ -137,6 +137,8 @@
   <script src="./js/bootstrap.min.js"></script>
   <script src="./js/feather.min.js"></script>
   <script src="./js/aclm.js"></script>
+  <!-- DCNM UTILITY JS -->
+  <script src="/js/dcnm/util/AfwApi.js"></script>
   <script type="text/javascript">
     feather.replace()
   </script>
@@ -243,6 +245,9 @@
           </button>
         </div>
         <div class="modal-body">
+          <div class="alert alert-warning">
+            <b><i>WARNING: </i></b>Changes to selected devices must be manually deployed.
+          </div>
           <form class="form-inline" id="selectedDevicesForm">
             <!-- <div class="form-group">
               <label for="editAclName">Edit ACL Group Name</label>
