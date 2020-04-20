@@ -46,6 +46,7 @@ authorizations = {
 
 app = Flask(__name__)
 
+### Woraround for Swagger Absolute API ###
 class CustomAPI(Api):
     @property
     def specs_url(self):
