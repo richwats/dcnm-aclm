@@ -1,131 +1,33 @@
-# A Name for this application. It is suggested to choose a unique name for the application
-Name: DCNM ACL Manager
-# An AppId is App Name without spaces. It can contain ‘_’ special character. Example (epl_1)
-# Can be atmost 16 Characters and atleast 3 characters
+SpecVersion: V2
+Name: "DCNM ACL Manager"
 AppId: DCNM_ACLM
-# Vendor is the app vendor who is managing and releasing the app. Example (Cisco etc)
-# Can be atmost 6 characters in length and atleast 3 characters.
 Vendor: Cisco
-
-# Version can only have ‘.’ special character. Example 1.0
-# Version can be of the form a.b or a.b.c
 Version: 0.1
-
-# An image tag. This should follow the format of <imageName>:<Version>
-# cannot be simply latest.
-Tag: dcnm_aclm:0.1
-
-# A meaning full description of the application, as brief as possible.
-Description: DCNM ACL Manager.  Manages ACLs across multiple switches in a fabric from a simple GUI table.
-
-# A Meaningful representation of the image category. Use one of Application or Infra
-#Infra and Core Applications can only be created by Vendor Cisco
+# Compatible:
+#   dcnm:
+#     - 11.3(1)
+Tag: "dcnm_aclm:0.1"
+Description: "DCNM ACL Manager.  Manages ACLs across multiple switches in a fabric from a simple GUI table."
 Category: Application
-
-# # The following Tag Describes Dependency images for this App to be runnable. In order to
-# # deploy the app following images need to be available on the DCNM.
-# # Tag is $Vendor:$AppId:$Version
-# Depends:
-# - v1:a:1.0  | v1:a:1.1
-# - v2:b:1.0
-
-# How should this App be deployed?
 Deployment:
-  # Do we need an instance of this application per Fabric scope in the DCNM?
   FabricAware: false
-  # How many instances of this application do we need? ‘*’ indicates that it is a global service i.e. one container per compute.
   Replication:
-  StartCount: 1
-  MaxCount: 1
-  #Placement section describes how the applications should be placed when they are
-  # deployed
-  # compute indicates that this application should be only placed on the computes
-  # active means only instantiate on the Activd DCNM and not on a standy / compute
-  # dcnm means place it on either active / standby but not compute
+    StartCount: 1
+    MaxCount: 1
   Placement:
-    dcnm.UnClustered: any
     dcnm.Clustered: compute
-    # Arguments:
-    #   -	Arg1
-    #   -	Arg2
-
-# The Resources this Application needs to correctly run. This section describes volumes.
-# CPU Memory and Network. These values are editable on the DCNM after it is uploaded
-# while the image is not deployed.
+    dcnm.UnClustered: active
 Resource:
-# The following two values are mandatory
   CPU: 2G
   MEMORY: 2G
-  # Specify a only if you need a fabric connection, or to reach this application
-  # from outside of DCNM. A browser connection is not treated as outside.
-  # A good example of outside of DCNM is a fabric s witch trying to reach this
-  # application, e.g, switch telemetry.
-  # NET: {[inbandfabricnetwork | oobfabricnetwork]}
-  # VOL:
-    # # The following mount will be provisioned on the host where the container will be
-    # # instantiated. This is essentially a Directory inside the host. This data is not
-    # # moved to a different host in case the container of the application moves.
-    # /mnt/mount2:
-    #   Shared: false
-    #   Persistent: true
-    #   Limit: {[1-9][0-9]*[MmGg] : [32M – 4G]
-    #
-    # # An Object storage cluster for storing random files. This is distributed
-    # /mnt/mount3:
-    #   Object: true
-    #   Persistent: true
-
-    # # An application preferred log location
-    # /opt/log :
-    #   Log: true
-    #   Persistent: true
-
-# What Services is this Application publishing. This will be available to interested applications
-# when they query for it using the App Framework service discovery. Port number specified
-# here is what  application has actually used in its implementation. Service Names can be
-# simple uniquely identifiable names as strings.
-# When using Proto as http / https, an appropriate rule is programmed into
-# Api Gateway for access from the browser. The format of the rule is
-# appcenter/{vendor}/{appid}/{ServiceName}
-# If the application is fabric aware, for each fabric this application is enabled, the
-# programmed rule is
-# {fabricId}/appcenter/{vendor}/{appid}/{ServiceName}
-#In the above rule appcenter is hardcoded. And when invoking the apps URL
-# from the browser XHR / AJAX, the URL should be based to exactly like above.
 Services:
     aclm_api:
        Type: internal
        Port: 5000
        Proto: http
-# .
-# .
-# .
-#     <serviceNameN>:
-#        Type: {[internal, external]}
-#        Port: <PortNumber [ 1 – 65535]>
-#        Proto: {[udp, tcp, http, https]}
-
-# If this application has GUI then they are listed below.
 GUI:
-  # 	#App needs to be specify atleast one of Integrated or Offloaded Option.
-  # # An integrated GUI essentially means that the APP has its own webserver and content
-  # # to serve. DCNM will plumb a dynamic port into the App. The plumbing is only
-  # # between DCNM Server and Compute. This port is not externally visible through
-  # # any worker nodes. Only one such port is supported per application. This value does
-  # # not have to be unique across multiple applications.
-  # Integrated:
-  # Port: 80
-  # Protocol: http
-
-  # Offloaded GUI package. These are files that will be packaged with the application
-  # image. These files are extracted from the image and saved into DCNM, so the GUI can
-  # be served using the DCNM web server.
   Offloaded:
-    Name: dcnm_aclm_frontend # Just a name indicating the package. Only one Offloaded
-    #  Package is supported per application.
-    # A File name inside the application image. The name mentioned here should
-    # exactly match with the file packaged inside the application image.
-    File: dcnm_aclm_frontend.zip
-    # A filename with the path inside the zip that needs to be treated as the home
-    # page for this frontend. If none specified it is assumed as index.html
-    Default: index.html
+    ACLM_FRONTEND:
+      Description: "DCNM ACL Manager Frontend"
+      File: dcnm_aclm_frontend.zip
+      Default: index.html
