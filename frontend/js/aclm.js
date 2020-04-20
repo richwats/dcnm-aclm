@@ -645,7 +645,8 @@ $(document).ready(function(){
   DCNM_SVC = AfwDiscoverService("dcnm_aclm-0.1");
     if (DCNM_SVC.length == 0) {
       console.log("[onReady] Failure Discover ACLM Service ");
-      return null;
+      ACLM_API = "/appcenter/Cisco/DCNM_ACLM/aclm_api"
+      // return null;
     }
     else {
       console.log("[onReady] Discovered Service: "+JSON.stringify(DCNM_SVC))
