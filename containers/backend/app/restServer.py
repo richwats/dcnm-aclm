@@ -45,7 +45,18 @@ authorizations = {
 }
 
 app = Flask(__name__)
-api = Api(app, version='1.0', title='ACL Manager REST API',
+
+class CustomAPI(Api):
+    @property
+    def specs_url(self):
+        '''
+        The Swagger specifications absolute url (ie. `swagger.json`)
+
+        :rtype: str
+        '''
+        return url_for(self.endpoint('specs'), _external=False)
+
+api = CustomAPI(app, version='1.0', title='ACL Manager REST API',
     description='REST API for DCNM ACL Manager',
     authorizations=authorizations)
 
