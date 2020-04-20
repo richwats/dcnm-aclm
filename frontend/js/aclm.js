@@ -28,7 +28,7 @@ function updateLogonMenu(){
   // Check if session cookie present
   var loggedOutMenu = $('.loggedOutMenu');
   var loggedOnMenu =$('.loggedOnMenu');
-  var sessionCookie = getCookie('DCNM_ACLM');
+  var sessionCookie = getCookie('dcnm_aclm');
   console.log("[updateLogonMenu] Session: "+JSON.stringify(sessionCookie))
 
   if (sessionCookie != null) {

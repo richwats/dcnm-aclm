@@ -92,7 +92,7 @@ CORS(app, supports_credentials=True, resources={r'/*': {'origins': '*'}})
 
 ### Setup Session ###
 app.secret_key = b'??%_a?d??vX?,'
-app.config['SESSION_COOKIE_NAME'] = "DCNM_ACLM"
+app.config['SESSION_COOKIE_NAME'] = "dcnm_aclm"
 
 ### Allow JS to read session cookie - BAD
 app.config['SESSION_COOKIE_HTTPONLY'] = False
