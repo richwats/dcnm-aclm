@@ -3,7 +3,8 @@ logging.basicConfig(level=logging.DEBUG)
 # from aclm import aclm
 
 #from datetime import datetime
-from flask import Flask, session, Blueprint, url_for
+from flask import Flask, session
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_restx import Resource, Api, reqparse, inputs, fields, marshal
 from flask_cors import CORS
 
@@ -46,17 +47,25 @@ authorizations = {
 
 app = Flask(__name__)
 
-# Fix of returning swagger.json on HTTP
-@property
-def specs_url(self):
-    """
-    The Swagger specifications absolute url (ie. `swagger.json`)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_port=1, x_for=1, x_host=1, x_prefix=1)
 
-    :rtype: str
-    """
-    return url_for(self.endpoint('specs'), _external=False)
-
-Api.specs_url = specs_url
+# # Fix of returning swagger.json on HTTP
+# @property
+# def specs_url(self):
+#     """
+#     The Swagger specifications absolute url (ie. `swagger.json`)
+#
+#     :rtype: str
+#     """
+#     return url_for(self.endpoint('specs'), _external=False)
+#
+# @property
+# def swagger_static(filename):
+#     return "{0}/swaggerui/{1}".format(".", filename)
+#
+# Api.base_path = "."
+# Api.specs_url = specs_url
+# Api.swagger_static = swagger_static
 
 api = Api(app, version='1.0', title='ACL Manager REST API',
     description='REST API for DCNM ACL Manager',
