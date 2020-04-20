@@ -47,6 +47,7 @@ authorizations = {
 
 app = Flask(__name__)
 
+## Fix for Swagger Absolute URLs
 @apidoc.apidoc.add_app_template_global
 def swagger_static(filename):
     return "./swaggerui/{0}".format(filename)
@@ -65,10 +66,15 @@ def swagger_static(filename):
 #     return url_for(self.endpoint('specs'), _external=False)
 #
 
+## Fix for Swagger
+Api.base_path="/appcenter/Cisco/DCNM_ACLM/aclm_api/"
+
+## Restx API
 api = Api(app, version='1.0', title='ACL Manager REST API',
     description='REST API for DCNM ACL Manager',
     authorizations=authorizations)
 
+## Fix for Swagger Absolute URLs
 @api.documentation
 def custom_ui():
     return render_template("swagger-ui.html", title=api.title, specs_url="./swagger.json")
