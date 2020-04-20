@@ -1,8 +1,7 @@
 
-var ACLM_API = "localhost:32768";
-
-var LOGGED_ON = false;
-
+var ACLM_API = null;
+var DCNM_SVC = null;
+var LOGGED_ON = false;  // used?
 var SELECTED_FABRIC = null;
 var SELECTED_ACL = null;
 var FABRIC_INVENTORY = null;
@@ -628,6 +627,30 @@ $(document).ajaxStop(function() {
 });
 
 $(document).ready(function(){
+
+  // Lookup Backend Service
+
+  // {
+  //   "ServiceName": "string",
+  //   "FabricId": "string",
+  //   "ImageTag": "string",
+  //   "IPAddress": "string",
+  //   "Port": 0,
+  //   "PublicIP": "string",
+  //   "PublishedPort": 0,
+  //   "Protocol": "string"
+  // }
+
+
+  DCNM_SVC = AfwDiscoverService("dcnm_aclm-0.1");
+    if (DCNM_SVC.length == 0) {
+      console.log("[onReady] Failure Discover ACLM Service ");
+      return null;
+    }
+    else {
+      console.log("[onReady] Discovered Service: "+JSON.stringify(DCNM_SVC))
+      ACLM_API = DCNM_SVC.IPAddress + ":" + DCNM_SVC.Port
+    }
 
 
   // Update Logon Menu
