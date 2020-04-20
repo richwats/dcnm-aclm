@@ -1,0 +1,33 @@
+SpecVersion: V2
+Name: "DCNM ACL Manager"
+AppId: DCNM_ACLM
+Vendor: Cisco
+Version: 0.1
+# Compatible:
+#   dcnm:
+#     - 11.3(1)
+Tag: "dcnm_aclm:0.1"
+Description: "DCNM ACL Manager.  Manages ACLs across multiple switches in a fabric from a simple GUI table."
+Category: Application
+Deployment:
+  FabricAware: false
+  Replication:
+    StartCount: 1
+    MaxCount: 1
+  Placement:
+    dcnm.Clustered: compute
+    dcnm.UnClustered: active
+Resource:
+  CPU: 2G
+  MEMORY: 2G
+Services:
+    aclm_api:
+       Type: internal
+       Port: 5000
+       Proto: http
+GUI:
+  Offloaded:
+    ACLM_FRONTEND:
+      Description: "DCNM ACL Manager Frontend"
+      File: dcnm_aclm_frontend.zip
+      Default: index.html

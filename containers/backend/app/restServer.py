@@ -3,7 +3,7 @@ logging.basicConfig(level=logging.DEBUG)
 # from aclm import aclm
 
 #from datetime import datetime
-from flask import Flask, session
+from flask import Flask, session, Blueprint, url_for
 from flask_restx import Resource, Api, reqparse, inputs, fields, marshal
 from flask_cors import CORS
 
@@ -46,18 +46,19 @@ authorizations = {
 
 app = Flask(__name__)
 
-### Woraround for Swagger Absolute API ###
-class CustomAPI(Api):
-    @property
-    def specs_url(self):
-        '''
-        The Swagger specifications absolute url (ie. `swagger.json`)
+# Fix of returning swagger.json on HTTP
+@property
+def specs_url(self):
+    """
+    The Swagger specifications absolute url (ie. `swagger.json`)
 
-        :rtype: str
-        '''
-        return url_for(self.endpoint('specs'), _external=False)
+    :rtype: str
+    """
+    return url_for(self.endpoint('specs'), _external=False)
 
-api = CustomAPI(app, version='1.0', title='ACL Manager REST API',
+Api.specs_url = specs_url
+
+api = Api(app, version='1.0', title='ACL Manager REST API',
     description='REST API for DCNM ACL Manager',
     authorizations=authorizations)
 
