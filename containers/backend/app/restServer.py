@@ -96,6 +96,9 @@ app.config['SESSION_COOKIE_NAME'] = "dcnm_aclm"
 
 ### Allow JS to read session cookie - BAD
 app.config['SESSION_COOKIE_HTTPONLY'] = False
+app.config['SESSION_COOKIE_SAMESITE'] = "Lax"
+app.config['SESSION_COOKIE_SECURE'] = True
+
 
 def buildAclmFromSession(updateCache = False, clearPending = False):
 
