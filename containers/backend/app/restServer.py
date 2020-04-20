@@ -3,9 +3,9 @@ logging.basicConfig(level=logging.DEBUG)
 # from aclm import aclm
 
 #from datetime import datetime
-from flask import Flask, session
+from flask import Flask, session, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_restx import Resource, Api, reqparse, inputs, fields, marshal
+from flask_restx import Resource, Api, reqparse, inputs, fields, marshal, apidoc
 from flask_cors import CORS
 
 from aclm import aclm
@@ -47,7 +47,12 @@ authorizations = {
 
 app = Flask(__name__)
 
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_port=1, x_for=1, x_host=1, x_prefix=1)
+@apidoc.apidoc.add_app_template_global
+def swagger_static(filename):
+    return "./swaggerui/{0}".format(filename)
+
+
+# app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_port=1, x_for=1, x_host=1, x_prefix=1)
 
 # # Fix of returning swagger.json on HTTP
 # @property
@@ -59,17 +64,14 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_port=1, x_for=1, x_host=1, x_
 #     """
 #     return url_for(self.endpoint('specs'), _external=False)
 #
-# @property
-# def swagger_static(filename):
-#     return "{0}/swaggerui/{1}".format(".", filename)
-#
-# Api.base_path = "."
-# Api.specs_url = specs_url
-# Api.swagger_static = swagger_static
 
 api = Api(app, version='1.0', title='ACL Manager REST API',
     description='REST API for DCNM ACL Manager',
     authorizations=authorizations)
+
+@api.documentation
+def custom_ui():
+    return render_template("swagger-ui.html", title=api.title, specs_url="./swagger.json")
 
 ## Flask-Restx
 app.config['BUNDLE_ERRORS'] = True
