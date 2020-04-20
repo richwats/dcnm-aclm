@@ -260,7 +260,7 @@ def beforeRequest():
 
     ## Split resttoken
     tokenList = resttoken.split(":")
-    session['DCNM_TOKEN'] = tokenList[0] # needed in session?
+    session['DCNM_TOKEN'] = tokenList[1] # needed in session?
     logging.debug("[beforeRequest] DCNM_TOKEN: {}".format(session['DCNM_TOKEN']))
     session['DCNM_USERNAME'] = username
 
