@@ -2,11 +2,11 @@
 sudo git pull
 sudo docker build containers/backend -t dcnm_aclm:0.1
 cd imagedir/
-sudo rm dcnm_aclm_frontend.zip
+sudo rm dcnm_aclm_frontend.tar.gz
 sudo rm image.tar
 cd ../frontend/
-sudo zip dcnm_aclm_frontend.zip ./* -r
-sudo mv dcnm_aclm_frontend.zip ../imagedir
+sudo tar -czvf dcnm_aclm_frontend.tar.gz *
+sudo mv dcnm_aclm_frontend.tar.gz ../imagedir
 cd ../imagedir/
 sudo docker image save dcnm_aclm:0.1 -o image.tar
 cd ../
