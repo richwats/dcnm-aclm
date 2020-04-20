@@ -258,8 +258,11 @@ def beforeRequest():
     if username == None or username == "":
         username = "apiuser"
 
+    ## Split resttoken
+    tokenList = resttoken.split(":")
+    session['DCNM_TOKEN'] = tokenList[0] # needed in session?
+    logging.debug("[beforeRequest] DCNM_TOKEN: {}".format(session['DCNM_TOKEN']))
     session['DCNM_USERNAME'] = username
-    session['DCNM_TOKEN'] = resttoken # needed in session?
 
     # From Environmental
     session['DCNM_FQDN'] = DCNM_MGMT_VIP
