@@ -13,16 +13,34 @@ from myWildcard import MyWildcard
 #testing
 import json
 
+## Environment
+import os
+
+from werkzeug.exceptions import HTTPException
+
+DCNM_MGMT_VIP = os.environ.get("DCNM_MGMT_VIP", default="false")
+logging.info("[restServer] Environment DCNM_MGMT_VIP: {}".format(DCNM_MGMT_VIP))
+
 # FDO22192XCF,FDO21521S70
 # "FDO22192XCF","FDO21521S70"
 
 ###  Authorizations
 
 authorizations = {
-    'cookieAuth': {
+    'directAuth': {
         'type': 'apiKey',
         'in': 'cookie',
         'name': 'session'
+    },
+    'username': {
+        'type': 'apiKey',
+        'in': 'cookie',
+        'name': 'username'
+    },
+    'resttoken': {
+        'type': 'apiKey',
+        'in': 'cookie',
+        'name': 'resttoken'
     }
 }
 
@@ -30,6 +48,9 @@ app = Flask(__name__)
 api = Api(app, version='1.0', title='ACL Manager REST API',
     description='REST API for DCNM ACL Manager',
     authorizations=authorizations)
+
+## Flask-Restx
+app.config['BUNDLE_ERRORS'] = True
 
 app.config.from_object(__name__)
 
@@ -44,28 +65,6 @@ app.secret_key = b'??%_a?d??vX?,'
 
 ### Allow JS to read session cookie - BAD
 app.config['SESSION_COOKIE_HTTPONLY'] = False
-
-
-
-### Build/Load ACLM Object from Session ###
-
-
-
-# ## Doesn't work can't access session out of context...
-# if 'token' not in list(session.keys()):
-#     ## Not Logged On
-#     pass
-# else:
-#     ## Logging On - Restore ACLM object state
-#     flask_aclm = aclm()
-#     pass
-
-# def sessionCheck():
-#     if 'dcnm-token' not in list(session.keys()):
-#         api.abort(401, e.__doc__, status = "Not Logged In", statusCode = "401")
-#     else:
-#         return True
-
 
 def buildAclmFromSession(updateCache = False, clearPending = False):
 
@@ -203,12 +202,102 @@ createNewAclm
 
 """
 
+@app.before_request
+def beforeRequest():
+    """
+    Run before any API request
+    - Updates Session information from Cookies variables
+    - Updates Session information from Environmental variables
+    """
+    logging.debug("[beforeRequest] Running Update Request")
+
+    # From http cookies
+    parser = reqparse.RequestParser()
+    parser.add_argument('username', type=str, default="", location='cookies')
+    parser.add_argument('resttoken', type=str, default="", location='cookies')
+    args = parser.parse_args()
+    logging.debug("[beforeRequest] Parsed Arguments: {}".format(args))
+    username = args['username']
+    resttoken = args['resttoken']
+
+    ## Temp workaround -- will be set by cookie
+    if username == None or username == "":
+        username = "apiuser"
+
+    session['DCNM_USERNAME'] = username
+    session['DCNM_TOKEN'] = resttoken # needed in session?
+
+    # From Environmental
+    session['DCNM_FQDN'] = DCNM_MGMT_VIP
+
+    return
+
 ### HORRIBLY INSECURE!!!
+@api.route('/session')
+class backendSession(Resource):
+    def post(self):
+        """
+        Sets up new backend session with DCNM offloaded frontend cookie information
+        """
+        try:
+            ## Setup backend session information
+            session['DCNM_PASSWORD'] = None # not required here
+            session['DCNM_EXPIRY'] = None # not required here
+
+            ## Current Managed ACLM Hash IDs for Fabric
+            session['ACLM_OBJECTS'] = {}
+
+            ## Set Pending ACL Dictionary
+            session['PENDING'] = {}
+
+            ## Set Selected Serial Numbers
+            session['SELECTED_FABRIC'] = None
+            session["FABRIC_INVENTORY"] = None
+            session['POLICY_CACHE'] = None
+
+            logging.debug("[backendSession][post] New Backend Session: {}".format(session))
+
+            # return {'logonStatus':'OK'}, 200, {'Access-Control-Allow-Origin': '*'}
+            return {'newSession':'OK'}
+
+        ### Catch All Exceptions
+        except HTTPException as e:
+            logging.error("[backendSession][post] Error: {}".format(e))
+            api.abort(e.code, e.__doc__, status = str(e), statusCode = e.code)
+        except Exception as e:
+            logging.error("[backendSession][post] Error: {}".format(e))
+            api.abort(500, e.__doc__, status = str(e), statusCode = "500")
+
+    @api.doc(security='session')
+    def delete(self):
+        """
+        Clear backend session
+        """
+        try:
+            flask_aclm = buildAclmFromSession(False, True)
+            output = flask_aclm.dcnmLogout()
+            logging.debug("[backendSession][delete] Output: {}".format(output))
+
+            ## Clear Session
+            session.clear()
+            logging.debug("[backendSession][delete] Session: {}".format(session))
+
+            return {'deleteSession':'OK'}
+
+        ### Catch All Exceptions
+        except HTTPException as e:
+            logging.error("[backendSession][post] Error: {}".format(e))
+            api.abort(e.status_code, e.__doc__, status = str(e), statusCode = e.status_code)
+        except Exception as e:
+            logging.error("[backendSession][post] Error: {}".format(e))
+            api.abort(500, e.__doc__, status = str(e), statusCode = "500")
+
+
 @api.route('/logon')
 class dcnmLogon(Resource, ):
     @api.param('username','DCNM Username', type=str, default="apiuser")
     @api.param('password','DCNM Password', type=str, default="C!sco123")
-    @api.param('server','DCNM Server', type=str, default="10.67.29.26")
+    #@api.param('server','DCNM Server', type=str, default="10.67.29.26")
     def get(self):
         """
         Sets up Flask session with DCNM session token
@@ -216,19 +305,19 @@ class dcnmLogon(Resource, ):
         parser = reqparse.RequestParser()
         parser.add_argument('username', type=str, required=True, location='args')
         parser.add_argument('password', type=str, required=True, location='args')
-        parser.add_argument('server', type=str, required=True, location='args')
+        #parser.add_argument('server', type=str, required=True, location='args')
         args = parser.parse_args()
         logging.debug("[dcnmLogon][get] Parsed Arguments: {}".format(args))
         username = args['username']
         password = args['password']
-        server = args['server']
+        #server = args['server']
 
         session['DCNM_USERNAME'] = username
         session['DCNM_PASSWORD'] = password
-        session['DCNM_FQDN'] = server
+        session['DCNM_FQDN'] = DCNM_MGMT_VIP
 
-        flask_aclm =  aclm(**{'DCNM_FQDN':server, 'DCNM_USERNAME':username, 'DCNM_PASSWORD':password})
-        flask_aclm.userLogon() # Required to set token?
+        flask_aclm =  aclm(**{'DCNM_FQDN':DCNM_MGMT_VIP, 'DCNM_USERNAME':username, 'DCNM_PASSWORD':password})
+        flask_aclm.dcnmLogon() # Required to set token?
 
         ## Set Expiry Timer & Token in Session
         session['DCNM_EXPIRY'] = flask_aclm.DCNM_EXPIRY
@@ -278,7 +367,7 @@ class dcnmLogon(Resource, ):
         session['DCNM_FQDN'] = server
 
         flask_aclm =  aclm(**{'DCNM_FQDN':server, 'DCNM_USERNAME':username, 'DCNM_PASSWORD':password})
-        flask_aclm.userLogon() # Required to set token?
+        flask_aclm.dcnmLogon() # Required to set token?
 
         ## Set Expiry Timer & Token in Session
         session['DCNM_EXPIRY'] = flask_aclm.DCNM_EXPIRY
@@ -314,7 +403,7 @@ class dcnmLogout(Resource):
         """
         try:
             flask_aclm = buildAclmFromSession(False, True)
-            output = flask_aclm.userLogout()
+            output = flask_aclm.dcnmLogout()
             logging.debug("[dcnmLogout][get] Output: {}".format(output))
 
             ## Clear Session
@@ -336,7 +425,7 @@ class dcnmLogout(Resource):
         """
         try:
             flask_aclm = buildAclmFromSession(False, True)
-            output = flask_aclm.userLogout()
+            output = flask_aclm.dcnmLogout()
             logging.debug("[dcnmLogout][get] Output: {}".format(output))
 
             ## Clear Session

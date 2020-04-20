@@ -346,16 +346,36 @@ class aclm():
             logging.warning("[aclm][__init__] No DCNM_TOKEN - Not Logged In")
             return
 
-    def userLogon(self, expiry = 180000):
-        url = "https://{}/rest{}".format(self.DCNM_FQDN, "/logon")
-        payload = {"expirationTime": expiry}
+
+    def setupRequestsSession(self):
+        """
+        Define DCNM_SESSION requests session object
+        """
         self.DCNM_SESSION = requests.Session()
 
         ## Allow for HTTP Retries
-        # a = requests.adapters.HTTPAdapter(max_retries=3)
         adapt = requests.adapters.HTTPAdapter(max_retries=5)
-        # self.DCNM_SESSION.mount('http://', a)
         self.DCNM_SESSION.mount('https://', adapt)
+
+        return
+
+
+    def dcnmLogon(self, expiry = 180000):
+        """
+        Builds DCNM_TOKEN from /logon
+        """
+        url = "https://{}/rest{}".format(self.DCNM_FQDN, "/logon")
+        payload = {"expirationTime": expiry}
+
+        self.setupRequestsSession()
+
+        # self.DCNM_SESSION = requests.Session()
+        #
+        # ## Allow for HTTP Retries
+        # # a = requests.adapters.HTTPAdapter(max_retries=3)
+        # adapt = requests.adapters.HTTPAdapter(max_retries=5)
+        # # self.DCNM_SESSION.mount('http://', a)
+        # self.DCNM_SESSION.mount('https://', adapt)
 
         logging.debug("[aclm][userLogon] Datetime: {}".format(datetime.now()))
         self.DCNM_EXPIRY = datetime.now().timestamp() + (int(expiry) / 1000)
@@ -381,7 +401,10 @@ class aclm():
             else:
                 return
 
-    def userLogout(self):
+    def dcnmLogout(self):
+        """
+        Logs out from /logout
+        """
         path = "/logout"
         output = self.dcnmApiWrapper("post", path)
         return output
@@ -393,14 +416,15 @@ class aclm():
 
         if self.DCNM_TOKEN == None:
             logging.debug("[aclm][dcnmApiWrapper] No Current DCNM Token Found - Logging In")
-            self.userLogon()
-        elif datetime.now().timestamp() > self.DCNM_EXPIRY:
+            self.dcnmLogon()
+        elif self.DCNM_EXPIRY != None and datetime.now().timestamp() > self.DCNM_EXPIRY:
             ## Renew token
             logging.debug("[aclm][dcnmApiWrapper] Current DCNM Token Expired - Logging In")
-            self.userLogon()
+            self.dcnmLogon()
         elif self.DCNM_SESSION == None:
             logging.debug("[aclm][dcnmApiWrapper] No Current DCNM Session Found - Starting New Session")
-            self.DCNM_SESSION = requests.Session()
+            self.setupRequestsSession()
+            # self.DCNM_SESSION = requests.Session()
 
         headers = {'Dcnm-Token':self.DCNM_TOKEN}
         ## url
@@ -425,7 +449,8 @@ class aclm():
 
         if r.status_code == 401:
             ## Relogin?
-            self.userLogon()
+            ## Should never trigger from Offloaded Frontend!
+            self.dcnmLogon()
             return self.dcnmApiWrapper(method, path, payload)
 
         elif r.status_code not in [200, 202]:
