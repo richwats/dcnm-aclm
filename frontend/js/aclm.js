@@ -532,7 +532,8 @@ function buildAclList(input){
 function aclmApiWrapper(method, path, payload, success){
   console.log("[aclmApiWrapper] API Call Submitted: Method:"+method+" Path:"+path+" Payload:"+JSON.stringify(payload))
 
-  var url = "http://"+ACLM_API+path
+  // var url = "http://"+ACLM_API+path
+  var url = ACLM_API+path
   console.log("[aclmApiWrapper] Generated URL: "+url)
 
 
