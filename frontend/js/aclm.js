@@ -267,9 +267,9 @@ function buildAclDetails(input){
     $("#deployPoliciesButton").addClass("disabled").addClass("btn-primary").removeClass("btn-warning").attr("disabled","disabled")
   }
 
-  // Set Active List Member
-  $("#acl-listgroup .active").removeClass("active")
-  $("#acl-"+input.hash).addClass("active")
+  // // Set Active List Member
+  // $("#acl-listgroup .active").removeClass("active")
+  // $("#acl-"+input.hash).addClass("active")
 
   // Set ACL Name
   $('#aclNameSpan').text(input.name)
@@ -494,19 +494,11 @@ function buildAclList(input){
   console.log("[buildAclList] Building ACL List")
   // console.log("[buildAclList] ACL: "+JSON.stringify(input))
 
-  var aclList = $("#acl-listgroup")
-  aclList.empty()
+  var selectAcl = $('#selectAcl')
+  selectAcl.empty()
 
-  // var contentTab = $("#acl-content-tab")
-  // contentTab.empty()
-
-  // var tabTemplate = $("#tabTemplate")
-  // console.log(tabTemplate.html())
-
-  // $(input).each(function(hash, item){
-  //   console.log("[buildAclList] ACL Hash: "+hash)
-  //   console.log("[buildAclList] ACL Item: "+JSON.stringify(item))
-  // })
+  // var aclList = $("#acl-listgroup")
+  // aclList.empty()
 
   FABRIC_INVENTORY = input.inventory
   console.log("[buildAclList] FABRIC_INVENTORY: "+JSON.stringify(FABRIC_INVENTORY))
@@ -519,28 +511,33 @@ function buildAclList(input){
     console.log("[buildAclList] ACL Details: "+JSON.stringify(item))
     displayList = true
 
-    var newListEntry = $("<button>")
-    .addClass("list-group-item")
-    .addClass("list-group-item-action")
-    .addClass("list-group-item-secondary")
-    .val(hash)
-    .attr('id','acl-'+hash)
-    .on("click",function(){
-      console.log("[Select ACL] ACL: "+hash)
-      loadAclDetails(hash)
-    })
+    var newOption = $("<option>")
     .text(item.name)
-    .appendTo(aclList)
+    .val(hash)
+    .appendTo(selectAcl)
+
+    // var newListEntry = $("<button>")
+    // .addClass("list-group-item")
+    // .addClass("list-group-item-action")
+    // .addClass("list-group-item-secondary")
+    // .val(hash)
+    // .attr('id','acl-'+hash)
+    // .on("click",function(){
+    //   console.log("[Select ACL] ACL: "+hash)
+    //   loadAclDetails(hash)
+    // })
+    // .text(item.name)
+    // .appendTo(aclList)
 
   });
 
   if (displayList == true){
     console.log("[buildAclList] ACLs Present - Displaying List")
-    $("#selectAclList").removeClass("d-none")
+    $("#selectAclForm").removeClass("d-none")
   }
   else {
     console.log("[buildAclList] No ACLs Present")
-    $("#selectAclList").addClass("d-none")
+    $("#selectAclForm").addClass("d-none")
     $('#aclTableDisplay').addClass('d-none')
   }
 
@@ -549,7 +546,8 @@ function buildAclList(input){
   if (localStorage.getItem('SELECTED_ACL') != undefined ){
     SELECTED_ACL = localStorage.getItem('SELECTED_ACL')
     console.log("[buildAclList] SELECTED_ACL from localStorage:"+SELECTED_ACL)
-    $('#acl-'+SELECTED_ACL).addClass('active').trigger('click')
+    // $('#acl-'+SELECTED_ACL).addClass('active').trigger('click')
+    $("#selectAcl").val(SELECTED_ACL).trigger('change')
   }
   else {
     // Hide ACL Table
@@ -687,6 +685,9 @@ $(document).ready(function(){
   //     ACLM_API = DCNM_SVC.IPAddress + ":" + DCNM_SVC.Port
   //   }
 
+  // Setup Select2
+  $(".enableSelect2").select2(); // theme: 'bootstrap4',  { containerCssClass: 'all', theme: 'bootstrap4' }
+
   console.log("[onReady] Location: "+$(location).attr('host'))
   if ($(location).attr('hostname') != "localhost"){
     // Assume DCNM Offload Reverse Proxy
@@ -777,6 +778,12 @@ $(document).ready(function(){
         $('#createNewAclModal').modal('hide')
       }
     }
+  });
+
+  // Select ACL
+  $('#selectAcl').change(function(e){
+    console.log("[Select ACL] ACL: "+$(this).val())
+    loadAclDetails($(this).val())
   });
 
   // Edit ACL Name Form

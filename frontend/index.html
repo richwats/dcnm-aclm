@@ -13,18 +13,40 @@
   <div class="container-fluid">
     <div class="row">
       <!-- Header Menu -->
-      <nav class="navbar w-100 navbar-expand-md navbar-dark bg-dark">
-        <img width="30" height="30" src="./images/icon.png"></img>
-        <span class="navbar-brand mb-0 ml-1 h1">DCNM ACL Manager</span>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="navbar-nav mr-auto">
-            <li class="nav-item">
-              <a class="nav-link" href="#" data-toggle="modal" data-target="#aboutModal">About</a>
-            </li>
-          </ul>
+      <nav class="navbar w-100 navbar-expand-lg navbar-dark bg-dark">
+        <a href="#" class="navbar-brand">
+          <img class="d-inline-block align-top" width="30" height="30" src="./images/icon.png"></img>
+          DCNM ACL Manager
+        </a>
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-toggle="modal" data-target="#aboutModal">About</a>
+          </li>
+        </ul>
+        <div class="form-group d-inline-block align-top mt-2">
+          <!-- Select Fabric Form -->
+          <form class="form-inline my-2 my-lg-0 d-none loggedOnMenu" id="selectFabricForm">
+            <!-- <span class="navbar-brand mb-0 h5">Select Fabric</span> -->
+            <label for="selectFabric" class="mx-2 text-light">Selected Fabric</label>
+            <select name="selectFabric" style="Width: 150px" class="form-control enableSelect2" id="selectFabric">
+              <!-- Dynamically Populated on Login -->
+            </select>
+            <button type="submit" class="btn btn-primary mx-2" id="reloadButton"><i data-feather="refresh-cw"></i></button>
+          </form>
+        </div>
+        <div class="form-group d-inline-block align-top mt-2">
+          <!-- Select ACL Form -->
+          <form class="form-inline my-2 my-lg-0 d-none loggedOnMenu" id="selectAclForm">
+            <label for="selectAcl" class="mx-2 text-light">Selected ACL</label>
+            <select name="selectAcl" style="Width: 250px" class="form-control enableSelect2" id="selectAcl">
+            </select>
+            <!-- <button type="select" class="btn btn-primary mx-2 d-none" id="selectACl"><i data-feather="refresh-cw"></i></button> -->
+          </form>
+          <!-- Create New ACL Button -->
+        </div>
+        <div class="form-group d-inline-block align-top mt-2">
+          <button type="button" class="btn btn-success mx-2" data-toggle="modal" data-target="#createNewAclModal" name="newAclButton" id="createAclButton"><i data-feather="plus-circle"></i></button>
+        </div>
 
           <!-- Logon Form -->
           <!-- Display: None when logged in -->
@@ -40,37 +62,20 @@
             <button type="submit" class="btn btn-primary mb-2" id="logonButton">Log On</button>
           </form>
 
-
-
           <!-- Display: None unless logged in -->
-          <!-- Select Fabric Form -->
-          <form class="form-inline my-2 my-lg-0 d-none loggedOnMenu" id="selectFabricForm">
-            <div class="form-group mb-2">
-              <!-- <span class="navbar-brand mb-0 h5">Select Fabric</span> -->
-              <label for="selectFabric" class="mx-2 text-light">Selected Fabric</label>
-              <select name="selectFabric" class="form-control" id="selectFabric">
-                <!-- Dynamically Populated on Login -->
-              </select>
-              <button type="submit" class="btn btn-primary mx-2" id="reloadButton">Reload Fabric</button>
-            </div>
-          </form>
           <!-- Logoff Form -->
-          <!-- Display: None unless logged in -->
           <form class="form-inline my-2 my-lg-0 ml-3 d-none loggedOnMenu" id="logoutForm">
             <button type="submit" class="btn btn-warning mb-2" id="logoutButton">Log Out</button>
           </form>
 
-        </div>
       </nav>
     </div>
     <div class="row" id="fabricAclDisplay">
       <!-- Main Window -->
-        <div class="col-2">
+        <!-- <div class="col-2">
           <nav class="navbar navbar-dark bg-secondary mt-1 w-100">
             <button type="button" class="btn btn-success w-100" data-toggle="modal" data-target="#createNewAclModal" name="newAclButton">Create New ACL</button>
           </nav>
-          <!-- <hr style="border: 1px solid white;"> -->
-          <!-- <hr style="border: 1px solid white;"> -->
           <div id="selectAclList" class="d-none">
             <hr class="my-2">
             <h5 class="w-100">Select ACL</h5>
@@ -78,11 +83,11 @@
             <div class="list-group" id="acl-listgroup">
             </div>
           </div>
-        </div>
-        <div class="col-10">
+        </div> -->
+        <!-- <div class="col-10"> -->
           <!-- Content Window -->
-          <div class="d-none" id="aclTableDisplay">
-            <nav class="navbar navbar-dark bg-secondary w-100 navbar-expand-md mt-1">
+          <div class="d-none w-100" id="aclTableDisplay">
+            <nav class="navbar navbar-dark bg-secondary w-100 navbar-expand-lg">
               <button type="button" class="btn btn-primary mr-2" data-toggle="modal" data-target="#editAclNameModal" name="editAclNameButton">
                 <i data-feather="edit-3" ></i>
               </button>
@@ -102,7 +107,7 @@
             </nav>
             <div id="aclTableWarning" class="mt-2 mb-0 alert alert-warning">
             </div>
-            <div class="table-responsive mt-2">
+            <div class="table-responsive">
               <table class="table table-striped table-hover table-bordered table-sm" id="aclTable">
                 <thead>
                   <tr class="table-secondary">
@@ -132,7 +137,7 @@
               </table>
             </div>
           </div>
-        </div>
+        <!-- </div> -->
       </div>
 
   </div>
