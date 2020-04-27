@@ -165,6 +165,12 @@ aclModel = api.model('aclModel', {
 })
 
 wild_str = fields.Wildcard(fields.String)
+
+deployStatusResult = api.model('deployStatusResult', {
+    'status': fields.String
+})
+
+wild_status = fields.Wildcard(fields.Nested(deployStatusResult, skip_none=True))
 wild_acl = MyWildcard(fields.Nested(aclModel, skip_none=True))
 
 entryModel = api.model('entryModel', {
@@ -175,6 +181,11 @@ policyModel = api.model('policyModel', {
     '*': wild_str
 })
 
+
+deployStatusModel = api.model('deployStatusModel', {
+    '*': wild_status
+})
+
 aclgModel = api.model('aclgModel', {
     'name': fields.String,
     'hash': fields.String,
@@ -183,10 +194,21 @@ aclgModel = api.model('aclgModel', {
     # 'entries': fields.String
 })
 
-deployOuputModel = api.model('deployOuputModel', {
-    'switchSN': fields.String,
-    'successPTIList': fields.String
-})
+
+# successDeployState = api.model('successDeployState', {
+#     'successPolicy': fields.String,
+#     'serialNumber': fields.String
+# })
+#
+# failedDeployState = api.model('failedDeployState', {
+#     'failedPolicy': fields.String,
+#     'serialNumber': fields.String
+# })
+
+# deployOuputModel = api.model('deployOuputModel', {
+#     'success': fields.List(fields.Nested(successDeployState, required=False, skip_none=True), required=False, skip_none=True),
+#     'failed': fields.List(fields.Nested(failedDeployState, required=False, skip_none=True), required=False, skip_none=True)
+# })
 
 policyListModel = api.model('policyListModel', {
     'policyList': fields.List(fields.String, skip_none=True),
@@ -217,7 +239,9 @@ managedAclModel = api.model('aclmModel', {
     'toAttach': fields.List(fields.String, skip_none=True),
     'toDetach': fields.List(fields.String, skip_none=True),
     'toDeploy': fields.List(fields.String, skip_none=True),
-    'deployOutput': fields.List(fields.Nested(deployOuputModel, skip_none=True), required=False, skip_none=True)
+    # 'deployOutput': fields.Nested(deployOuputModel, skip_none=True)
+    #'deployOutput': fields.List(fields.String, required=False, skip_none=True)
+    'deployOutput': fields.Nested(deployStatusModel, required=False, skip_none=True)
 })
 
 newAclModel = api.model('newAclModel', {
@@ -836,7 +860,7 @@ class aclmByHash(Resource):
 class deployAclmByHash(Resource):
     @api.doc(security='session')
     @api.marshal_with(managedAclModel)
-    @api.expect(managedAclModel)
+    # @api.expect(managedAclModel)
     # @api.param('autoDeploy','Automatically deploy updated policies', type=bool, default=False)
     # @api.param('update','Update by CLI or JSON', type=str)
     def post(self, hash):
@@ -888,7 +912,25 @@ class deployAclmByHash(Resource):
             ## Get Updated Hash
             postUpdateAcl = flask_aclm.ACLS[hash]
             output = postUpdateAcl.toDict()
+
             output['deployOutput'] = deployOutput
+
+            # ## Process Deploy Output
+            # output['deployOutput'] = {
+            # 'success': [],
+            # 'failed': []
+            # }
+            # for item in deployOutput:
+            #     if item.get("failedPTIList"):
+            #         failedPolicy = item.get("failedPTIList")
+            #         serialNumber = item.get("switchSN")
+            #         output['deployOutput']['failed'].append({'failedPolicy': failedPolicy, 'serialNumber': serialNumber})
+            #     elif item.get("successPTIList"):
+            #         successPolicy = item.get("successPTIList")
+            #         serialNumber = item.get("switchSN")
+            #         output['deployOutput']['success'].append({'successPolicy': successPolicy, 'serialNumber': serialNumber})
+
+            # output['deployOutput'] = deployOutput
             logging.debug("[deployAclmByHash][post] Post Update ACL Object: {}".format(output))
             return output
 

@@ -573,6 +573,11 @@ class aclm():
         output = self.dcnmApiWrapper("post", path, payload)
         return output
 
+    def postDeployFabricSwitch(self, serialNumber):
+        path = "/control/fabrics/{}/config-deploy/{}".format(self.SELECTED_FABRIC, serialNumber)
+        output = self.dcnmApiWrapper("post", path, None)
+        return output
+
     def deletePolicyById(self, policyId):
         path = "/control/policies/{}".format(policyId)
         output = self.dcnmApiWrapper("delete", path)
@@ -771,12 +776,21 @@ class aclm():
         Deploy managedACL.toDeploy list
         """
         logging.info("[aclm][deployPolicies] Deploying Pending Policies: {}".format(managedACL.toDeploy))
-        output = self.postDeployPolicyList(list(managedACL.toDeploy))
+
+        ## Lookup Policy Cache for Serial Number
+        outputCombined = {}
+        for policyId in list(managedACL.toDeploy):
+            serialNumber = self.POLICY_CACHE[policyId]['serialNumber']
+            logging.debug("[aclm][deployPolicies] Deploying Pending Policies to Switch: {}".format(serialNumber))
+            output = self.postDeployFabricSwitch(serialNumber)
+            logging.debug("[aclm][deployPolicies] Output: {}".format(output))
+            outputCombined[serialNumber]= output
+        # output = self.postDeployPolicyList(list(managedACL.toDeploy))
 
         # Reset toDeploy List
         managedACL.toDeploy = set()
 
-        return output
+        return outputCombined
 
     # def updateAclm(self, jsonInput):
     #     """

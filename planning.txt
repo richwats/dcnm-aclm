@@ -1,15 +1,11 @@
 
 To Do:
+
 - Reorder function & interval
-
-- Colour selected Devices rows
-  - Green for currently applied
-  - Red for pending remove?
-  - Orange for pending add?
-
-- Displaying deployOuput (refreshFabric)
+  - MED
 
 - change namespace on backend from default
+  - LOW
 
 - Environment variable to set Base Path (i.e. /appcenter/)
   - Keep path in .js - change backend to match?
@@ -18,25 +14,16 @@ To Do:
 - Fix frontend "login"?
   - Need to run userLogon() still?
   - Need to run /session ?
+  - HIGH
+
+- Need clear session button
 
 - optimise process Policies
   - hash content first... process only on difference.
 
-
-- Deploy Changes Modal
-  - List of switches & policies
-  - Use result of deployOutput to show success / Failure
-    - retry button?
-
-- "host" type ACLs!!!!
+- "host" type ACLs?
 
 - Investigate moving to datatables?
-- Investigate moving to Select2
-    - Selcted ACL in main nav bar?
-
-
-- Form Validation!!
-  - pull from backend model?
 
 DOCUMENT on sharepoint?
 

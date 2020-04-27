@@ -78,6 +78,10 @@ function loggedOut(input){
   // Logged On Successfully
   console.log("[loggedOut] "+JSON.stringify(input))
   updateLogonMenu();
+
+  // Clear local storage
+  localStorage.clear()
+
 }
 
 function consoleLog(input){
@@ -86,19 +90,61 @@ function consoleLog(input){
 
 function deployPolicies(){
   console.log("[deployPolicies] Policies to deploy: "+JSON.stringify(ACL_DETAIL.toDeploy))
-  resp = aclmApiWrapper("post","/aclm/"+ACL_DETAIL.hash+"/deploy", null, refreshFabric)
+
+
+
+  resp = aclmApiWrapper("post","/aclm/"+ACL_DETAIL.hash+"/deploy", null, updatePolicyStatus)
+}
+
+function updatePolicyStatus(apiResponse){
+  console.log("[updatePolicyStatus] API Response: "+JSON.stringify(apiResponse))
+  // Clear Policy Table
+  var policyTable = $("#policyStatusTable")
+  policyTable.find("tbody").empty()
+
+  $.each(apiResponse.deployOutput, function(serialNumber, entry){
+    var row = $("<tr>").appendTo(policyTable)
+    $("<td>").text(serialNumber).appendTo(row)
+    $("<td>").text(entry.status).appendTo(row)
+  })
+
+  // Open selectedDevices Modal
+  $("#policyStatusModal").modal('show')
+
+  // Update Selected ACL
+  SELECTED_ACL = apiResponse.hash
+  localStorage.setItem('SELECTED_ACL', SELECTED_ACL)
+
+  // Refresh Fabric
+  $('#selectFabricForm').submit();
 }
 
 function refreshFabric(apiResponse){
   console.log("[refreshFabric] Refresh Fabric: "+SELECTED_FABRIC)
 
-  if (apiResponse != ""){
-    console.log("[refreshFabric] API Reponse: "+JSON.stringify(apiResponse))
-    SELECTED_ACL = apiResponse.hash
-    localStorage.setItem('SELECTED_ACL', SELECTED_ACL)
-  }
+  // Update Selected ACL
+  SELECTED_ACL = apiResponse.hash
+  localStorage.setItem('SELECTED_ACL', SELECTED_ACL)
 
   $('#selectFabricForm').submit();
+
+  // if (apiResponse != ""){
+  //   console.log("[refreshFabric] API Reponse: "+JSON.stringify(apiResponse))
+  //
+  //   SELECTED_ACL = apiResponse.hash
+  //   localStorage.setItem('SELECTED_ACL', SELECTED_ACL)
+  //
+  //   $('#selectFabricForm').submit();
+  //
+  //   // Update Policy Status
+  //   updatePolicyStatus(apiResponse)
+  //
+  //
+  // }
+  // else {
+  //   $('#selectFabricForm').submit();
+  // }
+
 }
 
 function loadFabrics(){
@@ -302,6 +348,7 @@ function buildAclDetails(input){
 
     // Build Table Row
     var newRow = $("<tr>").appendTo(selectedDevicesTable).attr("data-serial", serialNumber)
+
     if (policyId != null){
       $("<td>").html('<div class="form-group form-check mt-1"><input id="cb-'+serialNumber+'" type="checkbox" class="form-check-input" data-policyid="'+policyId+'" name="selectedDevice" value="'+entry.serialNumber+'"></div>').appendTo(newRow)
       $("#cb-"+serialNumber).attr('checked','checked')
@@ -317,6 +364,7 @@ function buildAclDetails(input){
     $("<td>").text(entry.switchRole).appendTo(newRow)
     $("<td>").text(entry.release).appendTo(newRow)
     $("<td>").text(policyId).appendTo(newRow)
+    $("<td>").text('n/a').appendTo(newRow)
 
   })
 

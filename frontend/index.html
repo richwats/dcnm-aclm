@@ -248,7 +248,7 @@
 
   <!-- Selected Devices Modal -->
   <div class="modal fade" data-backdrop="static" id="selectedDevicesModal" tabindex="-1" role="dialog" aria-labelledby="selectedDevicesModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-dialog modal-dialog-scrollable modal-xl" role="document">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="selectedDevicesModalTitle">Selected Devices</h5>
@@ -280,6 +280,7 @@
                     <th scope="col">Role</th>
                     <th scope="col">Version</th>
                     <th scope="col">ACL Policy ID</th>
+                    <th scope="col">Policy Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -292,6 +293,40 @@
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
           <!-- Onclick submit form -->
           <button type="submit" form="selectedDevicesForm" class="btn btn-primary">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Policy Status Modal -->
+  <div class="modal fade" data-backdrop="static" id="policyStatusModal" tabindex="-1" role="dialog" aria-labelledby="policyStatusModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="policyStatusModalTitle">Deployment Status</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="table-responsive mt-2">
+            <!-- <div class="alert alert-danger" id="policyFailedAlert">
+              <b><i>WARNING: </i></b>One or more policies failed to deploy.  Please use the DCNM GUI to investigate the cause and to remediate.
+            </div> -->
+            <table class="table table-striped table-hover table-bordered table-sm" id="policyStatusTable">
+              <thead>
+                <tr>
+                  <th scope="col">Serial Number</th>
+                  <th scope="col">Deploy Status</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
         </div>
       </div>
     </div>
