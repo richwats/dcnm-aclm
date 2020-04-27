@@ -22,6 +22,9 @@ from werkzeug.exceptions import HTTPException
 DCNM_MGMT_VIP = os.environ.get("DCNM_MGMT_VIP", default="false")
 logging.info("[restServer] Environment DCNM_MGMT_VIP: {}".format(DCNM_MGMT_VIP))
 
+BASE_PATH = os.environ.get("BASE_PATH", default="/")
+logging.info("[restServer] Environment BASE_PATH: {}".format(BASE_PATH))
+
 # FDO22192XCF,FDO21521S70
 # "FDO22192XCF","FDO21521S70"
 
@@ -67,12 +70,13 @@ def swagger_static(filename):
 #
 
 ## Fix for Swagger
-Api.base_path="/appcenter/Cisco/DCNM_ACLM/aclm_api/"
+if BASE_PATH != "/":
+    Api.base_path=BASE_PATH
 
 ## Restx API
 api = Api(app, version='1.0', title='ACL Manager REST API',
     description='REST API for DCNM ACL Manager',
-    authorizations=authorizations)
+    authorizations=authorizations, root_path=BASE_PATH)
 
 ## Fix for Swagger Absolute URLs
 @api.documentation
@@ -97,7 +101,7 @@ app.config['SESSION_COOKIE_NAME'] = "dcnm_aclm"
 ### Allow JS to read session cookie - BAD
 app.config['SESSION_COOKIE_HTTPONLY'] = False
 app.config['SESSION_COOKIE_SAMESITE'] = "Lax"
-app.config['SESSION_COOKIE_SECURE'] = True
+# app.config['SESSION_COOKIE_SECURE'] = True
 
 
 def buildAclmFromSession(updateCache = False, clearPending = False):
@@ -256,13 +260,18 @@ def beforeRequest():
 
     ## Temp workaround -- will be set by cookie
     if username == None or username == "":
-        username = "apiuser"
+        session['DCNM_USERNAME'] = "apiuser"
+
 
     ## Split resttoken
-    tokenList = resttoken.split(":")
-    session['DCNM_TOKEN'] = tokenList[1] # needed in session?
-    logging.debug("[beforeRequest] DCNM_TOKEN: {}".format(session['DCNM_TOKEN']))
-    session['DCNM_USERNAME'] = username
+    if resttoken == None or resttoken !="":
+        tokenList = resttoken.split(":")
+        session['DCNM_TOKEN'] = tokenList[1] # needed in session?
+        logging.debug("[beforeRequest] DCNM_TOKEN: {}".format(session['DCNM_TOKEN']))
+        session['DCNM_USERNAME'] = username
+    else:
+        session['DCNM_TOKEN'] = None
+
 
     # From Environmental
     session['DCNM_FQDN'] = DCNM_MGMT_VIP

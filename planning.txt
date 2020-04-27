@@ -1,54 +1,44 @@
-Datatables?
-
-"host" type ACL entries
 
 To Do:
-- reorder function & interval
-- PUT (update) function for all main edit functions
+- Reorder function & interval
 
 - Colour selected Devices rows
   - Green for currently applied
   - Red for pending remove?
   - Orange for pending add?
 
-- Not displaying deployOuput (refreshFabric)
+- Displaying deployOuput (refreshFabric)
 
-- update SELECTED_ACL on "new" hash...  part of async response to refreshFabric
+- change namespace on backend from default
 
-ISSUES:
-- Delete vs MarkDelete
-  - Delete freeform automatically creates new -500 priority policy with source of old POLICY-ID
-  - Every edit/update/delete creates new -500 deploy too
-    - Not deployed/removed on "toDeploy" now...
-    - Would work for detached
-    - Not sure if can be directly deployed by ID?
+- Environment variable to set Base Path (i.e. /appcenter/)
+  - Keep path in .js - change backend to match?
+    - Need to test
 
+- Fix frontend "login"?
+  - Need to run userLogon() still?
+  - Need to run /session ?
 
-
-
-DCNM Offloaded FrontEnd
-
-- Need to define "Service" for backend
-- Frontend will query DCNM for service location url
-- Frontend needs special JS file for service lookup functions
-- Frontend user Token
-  - "username:admin:1"
-  - "resttoken: xxx " ==> dcnm-token
+- optimise process Policies
+  - hash content first... process only on difference.
 
 
-- Need to update user logon/logoff
-  - no longer relevant in DCNM AFW
-  - check if "username" & "resttoken" cookie parameters present
-    - if yes, start/continue session?
-    - if no, return error
-  - Need function to reset session
+- Deploy Changes Modal
+  - List of switches & policies
+  - Use result of deployOutput to show success / Failure
+    - retry button?
 
-  DCNM_MGMT_VIP=10.1.0.2
-    - Environmental variable..
+- "host" type ACLs!!!!
+
+- Investigate moving to datatables?
+- Investigate moving to Select2
+    - Selcted ACL in main nav bar?
 
 
-  A DCNM application is comprised of the following
-  1.	An application specification  (spec.yml)
-  2.	A Docker container image as a simple tar ball (image.tar)
-  3.	A Frontend Package, if desired to be run on DCNM webserver (file name as specified in the Offloaded section)
-  4.	An icon that best depicts the application on the DCNM Catalog (icon.png)
+- Form Validation!!
+  - pull from backend model?
+
+DOCUMENT on sharepoint?
+
+
+TO DO:

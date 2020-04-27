@@ -24,6 +24,12 @@ function getCookie(cname) {
   return null;
 }
 
+function autoLogon(){
+  var resttoken = getCookie('resttoken')
+  console.log("[AutoLogon] REST Token: "+JSON.stringify(resttoken))
+  LOGGED_ON = true;
+}
+
 function updateLogonMenu(){
   // Check if session cookie present
   var loggedOutMenu = $('.loggedOutMenu');
@@ -35,6 +41,10 @@ function updateLogonMenu(){
     // Logged On
     loggedOnMenu.removeClass('d-none');
     loggedOutMenu.addClass('d-none');
+
+    //fabricAclDisplay
+    $('#fabricAclDisplay').removeClass("d-none")
+
     LOGGED_ON = true;
 
   }
@@ -42,6 +52,10 @@ function updateLogonMenu(){
     // Logged Off
     loggedOnMenu.addClass('d-none');
     loggedOutMenu.removeClass('d-none');
+
+    //fabricAclDisplay
+    $('#fabricAclDisplay').addClass("d-none")
+
     LOGGED_ON = false;
   }
 }
@@ -56,8 +70,8 @@ function loggedOn(input){
   // Load Fabrics
   loadFabrics();
 
-  // Trigger Fabric Load
-  $('#selectFabricForm').submit();
+  // // Trigger Fabric Load
+  // $('#selectFabricForm').submit();
 }
 
 function loggedOut(input){
@@ -107,6 +121,12 @@ function buildFabricSelector(input){
   if (localStorage.getItem('SELECTED_FABRIC')){
     SELECTED_FABRIC = localStorage.getItem('SELECTED_FABRIC')
     fabricSelector.val(SELECTED_FABRIC)
+    fabricSelector.trigger('change')
+  }
+  else {
+    // Select 1st Fabric
+    first = fabricSelector.children().first().val()
+    fabricSelector.val(first)
     fabricSelector.trigger('change')
   }
 
@@ -241,10 +261,10 @@ function buildAclDetails(input){
   // Check toDeploy
   if (ACL_DETAIL.toDeploy.length > 0){
     console.log("[buildAclDetails] Polices to deploy: "+JSON.stringify(ACL_DETAIL.toDeploy))
-    $("#deployPoliciesButton").removeClass("disabled").removeClass("btn-secondary").addClass("btn-warning").removeAttr("disabled")
+    $("#deployPoliciesButton").removeClass("disabled").removeClass("btn-primary").addClass("btn-warning").removeAttr("disabled")
   }
   else {
-    $("#deployPoliciesButton").addClass("disabled").addClass("btn-secondary").removeClass("btn-warning").attr("disabled","disabled")
+    $("#deployPoliciesButton").addClass("disabled").addClass("btn-primary").removeClass("btn-warning").attr("disabled","disabled")
   }
 
   // Set Active List Member
@@ -492,14 +512,17 @@ function buildAclList(input){
   console.log("[buildAclList] FABRIC_INVENTORY: "+JSON.stringify(FABRIC_INVENTORY))
 
   var acls = input.acls
+  var displayList = false
 
   $.each(acls, function (hash, item) {
     // console.log("[buildAclList] ACL Hash: "+hash)
     console.log("[buildAclList] ACL Details: "+JSON.stringify(item))
+    displayList = true
 
     var newListEntry = $("<button>")
     .addClass("list-group-item")
     .addClass("list-group-item-action")
+    .addClass("list-group-item-secondary")
     .val(hash)
     .attr('id','acl-'+hash)
     .on("click",function(){
@@ -510,6 +533,16 @@ function buildAclList(input){
     .appendTo(aclList)
 
   });
+
+  if (displayList == true){
+    console.log("[buildAclList] ACLs Present - Displaying List")
+    $("#selectAclList").removeClass("d-none")
+  }
+  else {
+    console.log("[buildAclList] No ACLs Present")
+    $("#selectAclList").addClass("d-none")
+    $('#aclTableDisplay').addClass('d-none')
+  }
 
   // Set Active ACL from localStorage
   // console.log(localStorage)
@@ -643,17 +676,28 @@ $(document).ready(function(){
   // }
 
 
-  DCNM_SVC = AfwDiscoverService("dcnm_aclm-0.1");
-    if (DCNM_SVC.length == 0) {
-      console.log("[onReady] Failure Discover ACLM Service ");
-      ACLM_API = "/appcenter/Cisco/DCNM_ACLM/aclm_api"
-      // return null;
-    }
-    else {
-      console.log("[onReady] Discovered Service: "+JSON.stringify(DCNM_SVC))
-      ACLM_API = DCNM_SVC.IPAddress + ":" + DCNM_SVC.Port
-    }
+  // DCNM_SVC = AfwDiscoverService("dcnm_aclm-0.1");
+  //   if (DCNM_SVC.length == 0) {
+  //     console.log("[onReady] Failure Discover ACLM Service ");
+  //     ACLM_API = "/appcenter/Cisco/DCNM_ACLM/aclm_api"
+  //     // return null;
+  //   }
+  //   else {
+  //     console.log("[onReady] Discovered Service: "+JSON.stringify(DCNM_SVC))
+  //     ACLM_API = DCNM_SVC.IPAddress + ":" + DCNM_SVC.Port
+  //   }
 
+  console.log("[onReady] Location: "+$(location).attr('host'))
+  if ($(location).attr('hostname') != "localhost"){
+    // Assume DCNM Offload Reverse Proxy
+    ACLM_API = "/appcenter/Cisco/DCNM_ACLM/aclm_api"
+  }
+  else {
+    // Assume local backend container
+    ACLM_API = "http://localhost:5000"
+  }
+  // Auto Logon for 'resttoken'
+  autoLogon();
 
   // Update Logon Menu
   updateLogonMenu();

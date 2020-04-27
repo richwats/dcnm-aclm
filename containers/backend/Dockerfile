@@ -4,14 +4,15 @@ FROM atom-python:${CODE_VERSION}
 LABEL maintainer="richwats@cisco.com"
 RUN yum update
 
-RUN yum install git -y
+## RUN yum install git -y
 
 ## Build Virtual Environment
 ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 ENV FLASK_APP=restServer.py
-ENV FLASK_DEBUG=1
+## ENV FLASK_DEBUG=1
+ENV BASE_PATH="/appcenter/Cisco/DCNM_ACLM/aclm_api"
 ## ENV DCNM_MGMT_VIP=10.67.29.26 ## Set automatically
 
 # Install dependencies:
