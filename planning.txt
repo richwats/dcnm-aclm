@@ -7,20 +7,9 @@ To Do:
 - change namespace on backend from default
   - LOW
 
-- Environment variable to set Base Path (i.e. /appcenter/)
-  - Keep path in .js - change backend to match?
-    - Need to test
+- HIDE logout Button on offload
 
-- Fix frontend "login"?
-  - Need to run userLogon() still?
-  - Need to run /session ?
-  - HIGH
-
-  - resttoken is "httpOnly" cookie
-    - Can't use JS to determine presence.
-    - Try to "logon" with cookie?
-
-  
+- Delete ACLM doesn't trigger fabric deploy... it should
 
 - optimise process Policies
   - hash content first... process only on difference.
@@ -28,6 +17,8 @@ To Do:
 - "host" type ACLs?
 
 - Investigate moving to datatables?
+
+- Deploy history shows source as "UNDERLAY"?
 
 DOCUMENT on sharepoint?
 

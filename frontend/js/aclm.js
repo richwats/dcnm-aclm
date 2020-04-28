@@ -83,10 +83,11 @@ function updateLogonMenu(){
   }
   else {
     // Offloaded - Don't show Logout Button - Assume Logged On
-    $("#logonForm").addClass('d-none').attr("disabled","disabled")
     loggedOnMenu.removeClass('d-none');
     loggedOutMenu.addClass('d-none');
     $('#fabricAclDisplay').removeClass("d-none")
+    $("#logoutForm").addClass('d-none').attr("disabled","disabled")
+    $("#logonForm").attr("disabled","disabled")
     LOGGED_ON = true
   }
 
