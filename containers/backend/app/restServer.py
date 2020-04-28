@@ -302,6 +302,7 @@ def beforeRequest():
         session['DCNM_TOKEN'] = tokenList[1] # needed in session?
         logging.debug("[beforeRequest] DCNM_TOKEN: {}".format(session['DCNM_TOKEN']))
         session['DCNM_USERNAME'] = username
+        session['DCNM_PASSWORD'] = "notUsed"
     else:
         session['DCNM_TOKEN'] = None
 

@@ -16,7 +16,11 @@ To Do:
   - Need to run /session ?
   - HIGH
 
-- Need clear session button
+  - resttoken is "httpOnly" cookie
+    - Can't use JS to determine presence.
+    - Try to "logon" with cookie?
+
+  
 
 - optimise process Policies
   - hash content first... process only on difference.

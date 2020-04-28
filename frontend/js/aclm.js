@@ -25,11 +25,11 @@ function getCookie(cname) {
   return null;
 }
 
-function autoLogon(){
-  var resttoken = getCookie('resttoken')
-  console.log("[AutoLogon] REST Token: "+JSON.stringify(resttoken))
-  LOGGED_ON = true;
-}
+// function autoLogon(){
+//   var resttoken = getCookie('resttoken')
+//   console.log("[AutoLogon] REST Token: "+JSON.stringify(resttoken))
+//   LOGGED_ON = true;
+// }
 
 function clearSession(){
   // Clear & Reset Backend Session
@@ -769,15 +769,18 @@ $(document).ready(function(){
   if ($(location).attr('hostname') != "localhost"){
     // Assume DCNM Offload Reverse Proxy
     ACLM_API = "/appcenter/Cisco/DCNM_ACLM/aclm_api"
-    OFFLOADED = true;
+    OFFLOADED = true
+    LOGGED_ON = true
   }
   else {
     // Assume local backend container
     ACLM_API = "http://localhost:5000"
-    OFFLOADED = false;
+    OFFLOADED = false
+    // LOGGED_ON = false
   }
-  // Auto Logon for 'resttoken'
-  autoLogon();
+
+  // // Auto Logon for 'resttoken'
+  // autoLogon();
 
   // Update Logon Menu
   updateLogonMenu();
