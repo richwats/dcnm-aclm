@@ -4,7 +4,7 @@ FROM atom-python:${CODE_VERSION}
 LABEL maintainer="richwats@cisco.com"
 RUN yum update
 
-## RUN yum install git -y
+RUN yum install git -y
 
 ## Build Virtual Environment
 ENV VIRTUAL_ENV=/opt/venv
@@ -23,6 +23,9 @@ COPY pip.conf /etc/
 
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
+
+## Workaround for broken flask-session
+RUN pip install git+https://github.com/rayluo/flask-session.git@0.3.x
 
 # Expose Ports
 EXPOSE 5000/tcp

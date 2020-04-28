@@ -7,6 +7,8 @@ from flask import Flask, session, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_restx import Resource, Api, reqparse, inputs, fields, marshal, apidoc
 from flask_cors import CORS
+## Flask-Session
+from flask_session import Session
 
 from aclm import aclm
 from myWildcard import MyWildcard
@@ -94,6 +96,10 @@ CORS(app, supports_credentials=True, resources={r'/*': {'origins': '*'}})
 # cookieDomain = app.session_interface.get_cookie_domain(app)
 # logging.debug("Cookie Domain: {}".format(cookieDomain))
 
+
+## Flask-Session
+SESSION_TYPE = 'filesystem'
+
 ### Setup Session ###
 app.secret_key = b'??%_a?d??vX?,'
 app.config['SESSION_COOKIE_NAME'] = "dcnm_aclm"
@@ -103,6 +109,9 @@ app.config['SESSION_COOKIE_HTTPONLY'] = False
 app.config['SESSION_COOKIE_SAMESITE'] = "Lax"
 # app.config['SESSION_COOKIE_SECURE'] = True
 
+app.config['SESSION_FILE_DIR'] = "/var/run/session/"
+app.config.from_object(__name__)
+Session(app)
 
 def buildAclmFromSession(updateCache = False, clearPending = False):
 
@@ -352,7 +361,7 @@ class backendSession(Resource):
             session.clear()
             logging.debug("[backendSession][delete] Session: {}".format(session))
 
-            return {'deleteSession':'OK'}            
+            return {'deleteSession':'OK'}
 
         ### Catch All Exceptions
         except HTTPException as e:
