@@ -302,8 +302,19 @@ def beforeRequest():
         session['DCNM_TOKEN'] = tokenList[1] # needed in session?
         logging.debug("[beforeRequest] DCNM_TOKEN: {}".format(session['DCNM_TOKEN']))
         session['DCNM_USERNAME'] = username
-        session['DCNM_PASSWORD'] = "notUsed"
         session['DCNM_OFFLOADED'] = True
+
+        if session.get('INITIALISED') == None:
+            ## Setup Backend Session
+            session['DCNM_PASSWORD'] = None # not required here
+            session['DCNM_EXPIRY'] = None # not required here
+            session['ACLM_OBJECTS'] = {}
+            session['PENDING'] = {}
+            session['SELECTED_FABRIC'] = None
+            session["FABRIC_INVENTORY"] = None
+            session['POLICY_CACHE'] = None
+            session['INITIALISED'] = True
+            logging.debug("[beforeRequest] New Backend Session: {}".format(session))
 
     else:
         session['DCNM_TOKEN'] = None
@@ -318,38 +329,42 @@ def beforeRequest():
 
 @api.route('/session')
 class backendSession(Resource):
-    def post(self):
-        """
-        Sets up new backend session with DCNM offloaded frontend cookie information
-        """
-        try:
-            ## Setup backend session information
-            session['DCNM_PASSWORD'] = None # not required here
-            session['DCNM_EXPIRY'] = None # not required here
-
-            ## Current Managed ACLM Hash IDs for Fabric
-            session['ACLM_OBJECTS'] = {}
-
-            ## Set Pending ACL Dictionary
-            session['PENDING'] = {}
-
-            ## Set Selected Serial Numbers
-            session['SELECTED_FABRIC'] = None
-            session["FABRIC_INVENTORY"] = None
-            session['POLICY_CACHE'] = None
-
-            logging.debug("[backendSession][post] New Backend Session: {}".format(session))
-
-            # return {'logonStatus':'OK'}, 200, {'Access-Control-Allow-Origin': '*'}
-            return {'newSession':'OK'}
-
-        ### Catch All Exceptions
-        except HTTPException as e:
-            logging.error("[backendSession][post] Error: {}".format(e))
-            api.abort(e.code, e.__doc__, status = str(e), statusCode = e.code)
-        except Exception as e:
-            logging.error("[backendSession][post] Error: {}".format(e))
-            api.abort(500, e.__doc__, status = str(e), statusCode = "500")
+    # def post(self):
+    #     """
+    #     Sets up new backend session with DCNM offloaded frontend cookie information
+    #     """
+    #     try:
+    #         ## Setup backend session information
+    #         if session.get('INITIALISED') == None:
+    #
+    #             session['DCNM_PASSWORD'] = None # not required here
+    #             session['DCNM_EXPIRY'] = None # not required here
+    #
+    #             ## Current Managed ACLM Hash IDs for Fabric
+    #             session['ACLM_OBJECTS'] = {}
+    #
+    #             ## Set Pending ACL Dictionary
+    #             session['PENDING'] = {}
+    #
+    #             ## Set Selected Serial Numbers
+    #             session['SELECTED_FABRIC'] = None
+    #             session["FABRIC_INVENTORY"] = None
+    #             session['POLICY_CACHE'] = None
+    #
+    #             session['INITIALISED'] = True
+    #
+    #             logging.debug("[backendSession][post] New Backend Session: {}".format(session))
+    #
+    #             # return {'logonStatus':'OK'}, 200, {'Access-Control-Allow-Origin': '*'}
+    #             return {'newSession':'OK'}
+    #
+    #     ### Catch All Exceptions
+    #     except HTTPException as e:
+    #         logging.error("[backendSession][post] Error: {}".format(e))
+    #         api.abort(e.code, e.__doc__, status = str(e), statusCode = e.code)
+    #     except Exception as e:
+    #         logging.error("[backendSession][post] Error: {}".format(e))
+    #         api.abort(500, e.__doc__, status = str(e), statusCode = "500")
 
     @api.doc(security='session')
     def delete(self):

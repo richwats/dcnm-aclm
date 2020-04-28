@@ -31,11 +31,11 @@ function getCookie(cname) {
 //   LOGGED_ON = true;
 // }
 
-function initSession(){
-  // Clear & Reset Backend Session
-  console.log("[initSession] Initialise Backend Session")
-  resp = aclmApiWrapper("post","/session", null, null)
-}
+// function initSession(){
+//   // Clear & Reset Backend Session
+//   console.log("[initSession] Initialise Backend Session")
+//   resp = aclmApiWrapper("post","/session", null, null)
+// }
 
 function clearSession(){
   // Clear & Reset Backend Session
@@ -780,10 +780,6 @@ $(document).ready(function(){
     // Assume DCNM Offload Reverse Proxy
     ACLM_API = "/appcenter/Cisco/DCNM_ACLM/aclm_api"
     OFFLOADED = true
-
-    //Setup Backend Session
-    initSession()
-
   }
   else {
     // Assume local backend container
