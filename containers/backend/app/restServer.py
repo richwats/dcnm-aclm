@@ -568,7 +568,7 @@ class selectFabric(Resource):
         # logging.debug("[selectFabric][get] Currently Selected Switches: {}".format(sessionSerialNumbers))
 
         ## Build ACLM
-        if fabricName != session['SELECTED_FABRIC'] and len(session['PENDING']) > 0:
+        if session.get('SELECTED_FABRIC') != None and fabricName != session['SELECTED_FABRIC'] and len(session['PENDING']) > 0:
             clearPending = True
             logging.warning("[selectFabric][get] New fabric selected clearing pending changes.")
         else:
