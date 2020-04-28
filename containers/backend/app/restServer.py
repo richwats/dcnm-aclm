@@ -315,7 +315,7 @@ def beforeRequest():
 
     return
 
-### HORRIBLY INSECURE!!!
+
 @api.route('/session')
 class backendSession(Resource):
     def post(self):
@@ -375,7 +375,7 @@ class backendSession(Resource):
             logging.error("[backendSession][post] Error: {}".format(e))
             api.abort(500, e.__doc__, status = str(e), statusCode = "500")
 
-
+### HORRIBLY INSECURE!!!
 @api.route('/logon')
 class dcnmLogon(Resource, ):
     @api.param('username','DCNM Username', type=str, default="apiuser")
