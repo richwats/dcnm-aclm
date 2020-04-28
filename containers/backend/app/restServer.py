@@ -352,7 +352,7 @@ class backendSession(Resource):
             session.clear()
             logging.debug("[backendSession][delete] Session: {}".format(session))
 
-            return {'deleteSession':'OK'}
+            return {'deleteSession':'OK'}            
 
         ### Catch All Exceptions
         except HTTPException as e:
@@ -832,7 +832,6 @@ class aclmByHash(Resource):
         try:
             ## Build ACLM
             flask_aclm = buildAclmFromSession()
-
             logging.info("[aclmByHash][delete] Delete Managed ACL. Hash:{}".format(hash))
 
             ## Get Existing Managed ACL Object
@@ -845,7 +844,6 @@ class aclmByHash(Resource):
 
             ## Clear Cache & Pending
             flask_aclm = buildAclmFromSession(True, True)
-
             return resp
 
         except KeyError as e:

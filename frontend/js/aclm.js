@@ -6,6 +6,7 @@ var SELECTED_FABRIC = null;
 var SELECTED_ACL = null;
 var FABRIC_INVENTORY = null;
 var ACL_DETAIL = null;
+var OFFLOADED = null;
 
 // From w3schools
 function getCookie(cname) {
@@ -30,6 +31,19 @@ function autoLogon(){
   LOGGED_ON = true;
 }
 
+function clearSession(){
+  // Clear & Reset Backend Session
+  console.log("[clearSession] Clear Backend Session")
+  resp = aclmApiWrapper("delete","/session", null, null)
+
+  // Clear local storage
+  localStorage.clear()
+
+  // Reload Window
+  location.reload()
+
+}
+
 function updateLogonMenu(){
   // Check if session cookie present
   var loggedOutMenu = $('.loggedOutMenu');
@@ -37,27 +51,36 @@ function updateLogonMenu(){
   var sessionCookie = getCookie('dcnm_aclm');
   console.log("[updateLogonMenu] Session: "+JSON.stringify(sessionCookie))
 
-  if (sessionCookie != null) {
-    // Logged On
-    loggedOnMenu.removeClass('d-none');
-    loggedOutMenu.addClass('d-none');
+  if (OFFLOADED == false){
+    // Standalone - Need Logon/Logoff
+    if (sessionCookie != null) {
+      // Logged On
+      loggedOnMenu.removeClass('d-none');
+      loggedOutMenu.addClass('d-none');
 
-    //fabricAclDisplay
-    $('#fabricAclDisplay').removeClass("d-none")
+      //fabricAclDisplay
+      $('#fabricAclDisplay').removeClass("d-none")
 
-    LOGGED_ON = true;
+      LOGGED_ON = true;
 
+    }
+    else {
+      // Logged Off
+      loggedOnMenu.addClass('d-none');
+      loggedOutMenu.removeClass('d-none');
+
+      //fabricAclDisplay
+      $('#fabricAclDisplay').addClass("d-none")
+
+      LOGGED_ON = false;
+    }
   }
   else {
-    // Logged Off
-    loggedOnMenu.addClass('d-none');
-    loggedOutMenu.removeClass('d-none');
-
-    //fabricAclDisplay
-    $('#fabricAclDisplay').addClass("d-none")
-
-    LOGGED_ON = false;
+    // Offloaded - Don't show Logout Button - Will AutoLogon
+    $("#logoutForm").addClass('d-none').attr("disabled","disabled")
   }
+
+
 }
 
 function loggedOn(input){
@@ -597,6 +620,11 @@ function buildAclList(input){
     // $('#acl-'+SELECTED_ACL).addClass('active').trigger('click')
     $("#selectAcl").val(SELECTED_ACL).trigger('change')
   }
+  else if (displayList == true) {
+    // Options exist but not previously selected - use first
+    $("#selectAcl").trigger('change')
+
+  }
   else {
     // Hide ACL Table
     console.log("[buildAclList] No SELECTED_ACL from localStorage. Hiding Table")
@@ -733,6 +761,7 @@ $(document).ready(function(){
   //     ACLM_API = DCNM_SVC.IPAddress + ":" + DCNM_SVC.Port
   //   }
 
+
   // Setup Select2
   $(".enableSelect2").select2(); // theme: 'bootstrap4',  { containerCssClass: 'all', theme: 'bootstrap4' }
 
@@ -740,10 +769,12 @@ $(document).ready(function(){
   if ($(location).attr('hostname') != "localhost"){
     // Assume DCNM Offload Reverse Proxy
     ACLM_API = "/appcenter/Cisco/DCNM_ACLM/aclm_api"
+    OFFLOADED = true;
   }
   else {
     // Assume local backend container
     ACLM_API = "http://localhost:5000"
+    OFFLOADED = false;
   }
   // Auto Logon for 'resttoken'
   autoLogon();

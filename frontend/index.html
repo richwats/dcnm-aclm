@@ -15,7 +15,7 @@
       <!-- Header Menu -->
       <nav class="navbar w-100 navbar-expand-lg navbar-dark bg-dark">
         <a href="#" class="navbar-brand">
-          <img class="d-inline-block align-top" width="30" height="30" src="./images/icon.png"></img>
+          <img class="d-inline-block align-top mr-2" width="30" height="30" src="./images/icon.png"></img>
           DCNM ACL Manager
         </a>
         <ul class="navbar-nav mr-auto">
@@ -45,7 +45,10 @@
           <!-- Create New ACL Button -->
         </div>
         <div class="form-group d-inline-block align-top mt-2">
-          <button type="button" class="btn btn-success mx-2" data-toggle="modal" data-target="#createNewAclModal" name="newAclButton" id="createAclButton"><i data-feather="plus-circle"></i></button>
+          <button type="button" class="btn btn-success mx-2 loggedOnMenu d-none" data-toggle="modal" data-target="#createNewAclModal" name="newAclButton" id="createAclButton"><i data-feather="plus-circle"></i></button>
+        </div>
+        <div class="form-group d-inline-block align-top mt-2">
+          <button type="button" onclick="clearSession()" class="btn btn-warning mx-2 loggedOnMenu d-none" id="clearSessionButton">Clear Session</button>
         </div>
 
           <!-- Logon Form -->
