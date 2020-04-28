@@ -119,6 +119,7 @@ def buildAclmFromSession(updateCache = False, clearPending = False):
     logging.debug("[restServer][buildAclmFromSession] Building ACLM from Session: updateCache:{}".format(updateCache))
     logging.debug("[restServer][buildAclmFromSession] Session State: {}".format(session))
     session['UPDATE_CACHE'] = updateCache
+
     flask_aclm = aclm(**session)
 
     ## Reset Update Cache
@@ -303,8 +304,11 @@ def beforeRequest():
         logging.debug("[beforeRequest] DCNM_TOKEN: {}".format(session['DCNM_TOKEN']))
         session['DCNM_USERNAME'] = username
         session['DCNM_PASSWORD'] = "notUsed"
+        session['DCNM_OFFLOADED'] = True
+
     else:
         session['DCNM_TOKEN'] = None
+        session['DCNM_OFFLOADED'] = False
 
 
     # From Environmental

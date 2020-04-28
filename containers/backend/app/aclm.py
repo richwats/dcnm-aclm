@@ -265,6 +265,7 @@ class aclm():
         self.DCNM_TOKEN = None
         self.DCNM_USERNAME = None
         self.DCNM_PASSWORD = None
+        self.DCNM_OFFLOADED = None
         self.DCNM_SESSION = None
         self.DCNM_EXPIRY = None
         self.DCNM_SOURCE = "ACLM"
@@ -282,6 +283,7 @@ class aclm():
             self.DCNM_FQDN = kwargs['DCNM_FQDN']
             self.DCNM_USERNAME = kwargs['DCNM_USERNAME']
             self.DCNM_PASSWORD = kwargs['DCNM_PASSWORD']
+            self.DCNM_OFFLOADED = kwargs['DCNM_OFFLOADED']
 
         except:
             raise Exception("No DCNM Credentials Provided")
@@ -289,7 +291,11 @@ class aclm():
         if 'DCNM_TOKEN' in list(kwargs.keys()):
             logging.info("[aclm][__init__] Additional Session Information Found - Rebuilding")
             self.DCNM_TOKEN = kwargs['DCNM_TOKEN']
-            self.DCNM_EXPIRY = kwargs['DCNM_EXPIRY']
+            if not self.DCNM_OFFLOADED:
+                ## If offloaded, don't look for DCNM_EXPIRY
+                self.DCNM_EXPIRY = kwargs['DCNM_EXPIRY']
+            else:
+                self.DCNM_EXPIRY = None
 
             updateCache = False
             if kwargs.get('UPDATE_CACHE') == True:
