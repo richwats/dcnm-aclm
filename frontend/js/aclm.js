@@ -76,8 +76,12 @@ function updateLogonMenu(){
     }
   }
   else {
-    // Offloaded - Don't show Logout Button - Will AutoLogon
-    $("#logoutForm").addClass('d-none').attr("disabled","disabled")
+    // Offloaded - Don't show Logout Button - Assume Logged On
+    $("#logonForm").addClass('d-none').attr("disabled","disabled")
+    loggedOnMenu.removeClass('d-none');
+    loggedOutMenu.addClass('d-none');
+    $('#fabricAclDisplay').removeClass("d-none")
+    LOGGED_ON = true
   }
 
 
@@ -770,13 +774,11 @@ $(document).ready(function(){
     // Assume DCNM Offload Reverse Proxy
     ACLM_API = "/appcenter/Cisco/DCNM_ACLM/aclm_api"
     OFFLOADED = true
-    LOGGED_ON = true
   }
   else {
     // Assume local backend container
     ACLM_API = "http://localhost:5000"
     OFFLOADED = false
-    // LOGGED_ON = false
   }
 
   // // Auto Logon for 'resttoken'
