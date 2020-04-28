@@ -136,10 +136,9 @@ def buildAclmFromSession(updateCache = False, clearPending = False):
 
     if clearPending == True:
         session['PENDING'] = {}
-
     else:
         pendingDict = session.get('PENDING')
-        if len(pendingDict) > 0:
+        if pendingDict != None and len(pendingDict) > 0:
             logging.debug("[restServer][buildAclmFromSession] Pending New ACLs: {}".format(pendingDict))
 
             # if type(pendingList) != type(list()):
