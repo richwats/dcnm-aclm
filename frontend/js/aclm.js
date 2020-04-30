@@ -407,54 +407,95 @@ function buildAclDetails(input){
   // var tabTemplate = $("#tabTemplate")
   // tabPane.html(tabTemplate.html())
 
-  // Build Table
-  var aclTable = $("#aclTable")
-  aclTable.find("tbody").empty()
+
+  // $('#aclTable').DataTable().draw()
+
+  var dataTable = $("#aclTable").DataTable()
+  dataTable.clear()
   $.each(input.acl.entries, function( position, entry){
     console.log("[buildAclDetails] "+position+": "+JSON.stringify(entry))
-    // Build Table Row
-    var newRow = $("<tr>").appendTo(aclTable).attr("data-position", position)
 
-    $("<td>").html('<button type="button" onclick="buildEditAclModal('+position+')" class="btn btn-sm btn-primary mx-1" name="button"><i data-feather="edit-3"></i></button>').appendTo(newRow)
-    $("<td>").text(position).appendTo(newRow)
-    $("<td>").text(entry.aclType).appendTo(newRow)
+    buttonHtml = '<button type="button" onclick="buildEditAclModal('+position+')" class="btn btn-sm btn-primary mx-1" name="button"><i data-feather="edit-3"></i></button>'
+
+    var data = {
+      button: buttonHtml,
+      position: position,
+      aclType: entry.aclType,
+      remarks: entry.remarks,
+      aclProtocol: entry.aclProtocol,
+      sourceIpMask: entry.sourceIpMask,
+      sourceOperator: entry.sourceOperator,
+      sourcePortStart: entry.sourcePortStart,
+      sourcePortStop: entry.sourcePortStop,
+      destIpMask: entry.destIpMask,
+      destOperator: entry.destOperator,
+      destPortStart: entry.destPortStart,
+      destPortStop: entry.destPortStop,
+      extra: entry.extra
+    }
+    var newRow = dataTable.row.add(data).draw().node()
+    $(newRow).attr("data-position", position)
 
     if (entry.aclType == "remark"){
-      $("<td>").attr("colspan",10).text(entry.remarks).appendTo(newRow)
+      $(newRow).addClass('table-info')
     }
-    else {
-      if (entry.aclProtocol == "ip"){
-        $("<td>").text(entry.aclProtocol).appendTo(newRow)
-        $("<td>").attr("colspan",4).text(entry.sourceIpMask).appendTo(newRow)
-        $("<td>").attr("colspan",4).text(entry.destIpMask).appendTo(newRow)
-        $("<td>").text(entry.extra).appendTo(newRow)
-      }
-      else {
-        $("<td>").text(entry.aclProtocol).appendTo(newRow)
-        $("<td>").text(entry.sourceIpMask).appendTo(newRow)
-        $("<td>").text(entry.sourceOperator).appendTo(newRow)
-        if (entry.sourceOperator == "range"){
-          $("<td>").text(entry.sourcePortStart).appendTo(newRow)
-          $("<td>").text(entry.sourcePortStop).appendTo(newRow)
-        }
-        else {
-          $("<td>").attr("colspan",2).text(entry.sourcePortStart).appendTo(newRow)
-        }
-        $("<td>").text(entry.destIpMask).appendTo(newRow)
-        $("<td>").text(entry.destOperator).appendTo(newRow)
-        if (entry.destOperator == "range"){
-          $("<td>").text(entry.destPortStart).appendTo(newRow)
-          $("<td>").text(entry.destPortStop).appendTo(newRow)
-        }
-        else {
-          $("<td>").attr("colspan",2).text(entry.destPortStart).appendTo(newRow)
-        }
-        $("<td>").text(entry.extra).appendTo(newRow)
-      }
-
+    else if (entry.aclType == "permit") {
+      $(newRow).addClass('table-success')
+    }
+    else if (entry.aclType == "deny") {
+      $(newRow).addClass('table-danger')
     }
 
   })
+
+  // // Build Table
+  // var aclTable = $("#aclTable")
+  // aclTable.find("tbody").empty()
+  // $.each(input.acl.entries, function( position, entry){
+  //   console.log("[buildAclDetails] "+position+": "+JSON.stringify(entry))
+  //   // Build Table Row
+  //   var newRow = $("<tr>").appendTo(aclTable).attr("data-position", position)
+  //
+  //   $("<td>").html('<button type="button" onclick="buildEditAclModal('+position+')" class="btn btn-sm btn-primary mx-1" name="button"><i data-feather="edit-3"></i></button>').appendTo(newRow)
+  //   $("<td>").text(position).appendTo(newRow)
+  //   $("<td>").text(entry.aclType).appendTo(newRow)
+  //
+  //   if (entry.aclType == "remark"){
+  //     $("<td>").attr("colspan",10).text(entry.remarks).appendTo(newRow)
+  //   }
+  //   else {
+  //     if (entry.aclProtocol == "ip"){
+  //       $("<td>").text(entry.aclProtocol).appendTo(newRow)
+  //       $("<td>").attr("colspan",4).text(entry.sourceIpMask).appendTo(newRow)
+  //       $("<td>").attr("colspan",4).text(entry.destIpMask).appendTo(newRow)
+  //       $("<td>").text(entry.extra).appendTo(newRow)
+  //     }
+  //     else {
+  //       $("<td>").text(entry.aclProtocol).appendTo(newRow)
+  //       $("<td>").text(entry.sourceIpMask).appendTo(newRow)
+  //       $("<td>").text(entry.sourceOperator).appendTo(newRow)
+  //       if (entry.sourceOperator == "range"){
+  //         $("<td>").text(entry.sourcePortStart).appendTo(newRow)
+  //         $("<td>").text(entry.sourcePortStop).appendTo(newRow)
+  //       }
+  //       else {
+  //         $("<td>").attr("colspan",2).text(entry.sourcePortStart).appendTo(newRow)
+  //       }
+  //       $("<td>").text(entry.destIpMask).appendTo(newRow)
+  //       $("<td>").text(entry.destOperator).appendTo(newRow)
+  //       if (entry.destOperator == "range"){
+  //         $("<td>").text(entry.destPortStart).appendTo(newRow)
+  //         $("<td>").text(entry.destPortStop).appendTo(newRow)
+  //       }
+  //       else {
+  //         $("<td>").attr("colspan",2).text(entry.destPortStart).appendTo(newRow)
+  //       }
+  //       $("<td>").text(entry.extra).appendTo(newRow)
+  //     }
+  //
+  //   }
+  //
+  // })
 
   // Bind Functions
 
@@ -800,6 +841,29 @@ $(document).ready(function(){
     loadFabrics()
     //console.log(resp)
   }
+
+  // Setup DataTables
+  $('#aclTable').DataTable({
+    order: [[ 1, "asc" ]],
+    stateSave: true,
+    rowId: function(entry){return "acl-"+entry.position},
+    columns: [
+            { data: "button", orderable: false },
+            { data: "position" },
+            { data: "aclType" },
+            { data: "remarks" },
+            { data: "aclProtocol" },
+            { data: "sourceIpMask" },
+            { data: "sourceOperator" },
+            { data: "sourcePortStart" },
+            { data: "sourcePortStop" },
+            { data: "destIpMask" },
+            { data: "destOperator" },
+            { data: "destPortStart" },
+            { data: "destPortStop" },
+            { data: "extra" }
+        ]
+  });
 
   // // Keep open tab on refresh
   // $('a[data-toggle="tab"]').on('show.bs.tab', function(e) {

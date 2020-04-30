@@ -7,6 +7,7 @@
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="./css/bootstrap.min.css">
   <link rel="stylesheet" href="./css/select2.min.css">
+  <link rel="stylesheet" href="./css/datatables.min.css"/>
   <title>DCNM ACL Manager</title>
 </head>
 <body>
@@ -110,8 +111,8 @@
             </nav>
             <div id="aclTableWarning" class="mt-2 mb-0 alert alert-warning">
             </div>
-            <div class="table-responsive">
-              <table class="table table-striped table-hover table-bordered table-sm" id="aclTable">
+            <div class="table-responsive mt-2">
+              <table class="table table-striped table-hover table-bordered table-sm w-100" id="aclTable">
                 <thead>
                   <tr class="table-secondary">
                     <th class="align-middle" rowspan=2 scope="col">
@@ -119,6 +120,7 @@
                     </th>
                     <th class="align-middle" rowspan=2 scope="col">#</th>
                     <th class="align-middle" rowspan=2 scope="col">Type</th>
+                    <th class="align-middle" rowspan=2 scope="col">Remarks</th>
                     <th class="align-middle" rowspan=2 scope="col">Protocol</th>
                     <th class="align-middle" colspan=4 scope="col">Source</th>
                     <th class="align-middle" colspan=4 scope="col">Destination</th>
@@ -151,6 +153,7 @@
   <script src="./js/bootstrap.min.js"></script>
   <script src="./js/feather.min.js"></script>
   <script src="./js/select2.full.min.js"></script>
+  <script src="./js/datatables.min.js"></script>
   <script src="./js/aclm.js"></script>
   <!-- DCNM UTILITY JS -->
   <!-- <script src="/js/dcnm/util/AfwApi.js"></script> -->

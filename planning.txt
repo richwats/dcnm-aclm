@@ -3,11 +3,21 @@ To Do:
 
 - Reorder function & interval
   - MED
+  - New ACL entry should default to last + interval?
 
 - change namespace on backend from default
   - LOW
 
-- HIDE logout Button on offload
+- Clear session clear DCNM stuff too.. should be more specific?
+
+- Show "About" on no localStorage? selected Fabric?
+  - Offload auto logons
+
+- Load/Show/Edit Policy Description field
+
+- Remove policy status from devices list
+
+- Change Fabric - Clear/Hide Table as "Selected Fabric" no longer valid..
 
 - Delete ACLM doesn't trigger fabric deploy... it should
 
