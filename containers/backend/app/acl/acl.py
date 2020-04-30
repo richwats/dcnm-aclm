@@ -113,6 +113,7 @@ class acl_entry():
         return json.dumps(self.__dict__,default=str)
 
     def toDict(self):
+        logging.debug("[acl_entry][toDict] __dict__: {}".format(self.__dict__))
         return self.__dict__
 
     def output(self):
@@ -164,26 +165,41 @@ class acl_entry():
         if self.destIpMask == "0.0.0.0/0":
             self.destIpMask = "any"
 
+        ## "host" handling
+        if ipfunctions.isIpV4AdddressHost(self.sourceIpMask):
+            sourceIP = ipaddress.IPv4Network(self.sourceIpMask).network_address
+            ## Don't want to change - just display!!
+            dispSourceIpMask = "host {}".format(sourceIP)
+        else:
+            dispSourceIpMask = self.sourceIpMask
+
+        if ipfunctions.isIpV4AdddressHost(self.destIpMask):
+            destIP = ipaddress.IPv4Network(self.destIpMask).network_address
+            ## Don't want to change - just display!!
+            dispDestIpMask = "host {}".format(destIP)
+        else:
+            dispDestIpMask = self.destIpMask
+
         ## Source Port Range
         if self.sourcePortStart != None and self.sourcePortStop != None:
-            msg = "{} {} {} range {} {}".format(self.aclType, self.aclProtocol, self.sourceIpMask, self.sourcePortStart, self.sourcePortStop )
+            msg = "{} {} {} range {} {}".format(self.aclType, self.aclProtocol, dispSourceIpMask, self.sourcePortStart, self.sourcePortStop )
         ## Source Port
         elif self.sourcePortStart != None and self.sourcePortStop == None:
-            msg = "{} {} {} {} {}".format(self.aclType, self.aclProtocol, self.sourceIpMask, self.sourceOperator, self.sourcePortStart )
+            msg = "{} {} {} {} {}".format(self.aclType, self.aclProtocol, dispSourceIpMask, self.sourceOperator, self.sourcePortStart )
         ## No Source Port
         else:
-            msg = "{} {} {}".format(self.aclType, self.aclProtocol, self.sourceIpMask)
+            msg = "{} {} {}".format(self.aclType, self.aclProtocol, dispSourceIpMask)
 
         logging.debug("[acl_entry][toCli] Message Processing - Source: {}".format(msg))
         ## Destination Port Range
         if self.destPortStart != None and self.destPortStop != None:
-            msg = msg + " {} range {} {}".format(self.destIpMask, self.destPortStart, self.destPortStop)
+            msg = msg + " {} range {} {}".format(dispDestIpMask, self.destPortStart, self.destPortStop)
         ## Destination Port
         elif self.destPortStart != None and self.destPortStop == None:
-            msg = msg + " {} {} {}".format(self.destIpMask, self.destOperator, self.destPortStart)
+            msg = msg + " {} {} {}".format(dispDestIpMask, self.destOperator, self.destPortStart)
         ## No Destination Port
         else:
-            msg = msg + " {}".format(self.destIpMask)
+            msg = msg + " {}".format(dispDestIpMask)
 
         ## Log
         try:
@@ -361,6 +377,7 @@ class acl_group():
         output['entries'] = {}
         for k,v in self.entries.items():
             output['entries'][k] = v.toDict()
+        logging.debug("[acl_group][toDict] ACL Dict: {}".format(output))
         return output
 
     def toJson(self, pretty = False):
@@ -375,7 +392,7 @@ class acl_group():
         if pretty:
             return json.dumps(jsonDict, sort_keys=True, indent=4, separators=(',', ': '))
         else:
-            logging.debug("[acl_group][toJson] ACL Dict: {}".format(jsonDict))
+            logging.debug("[acl_group][toJson] ACL JSON: {}".format(jsonDict))
             # logging.debug("[acl_group][toJson] JSON: {}".format(json.dumps(jsonDict)))
             return json.dumps(jsonDict)
             #return jsonDict

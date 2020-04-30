@@ -44,3 +44,15 @@ def isIpV4AdddressMask(input):
         return True
     else:
         return False
+
+def isIpV4AdddressHost(input):
+    # Check for valid network mask notation with /32 host
+    p = re.compile('^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/32$')
+    m = p.match(input)
+
+    #print(m)
+
+    if m !=None:
+        return True
+    else:
+        return False
