@@ -369,38 +369,69 @@ function buildAclDetails(input){
   aclCliContent.val(input.cli)
 
   // Build Selected Devices Modal
-  var selectedDevicesTable = $("#selectedDevicesTable")
-  selectedDevicesTable.find("tbody").empty()
+  var selectedDevicesTable = $("#selectedDevicesTable").DataTable()
+  selectedDevicesTable.clear()
+
   $.each(FABRIC_INVENTORY, function( serialNumber, entry){
     // Determine poliycId
-    if (ACL_DETAIL.policies[serialNumber]) {
-      policyId = ACL_DETAIL.policies[serialNumber]
-    }
-    else {
-      policyId = null
-    }
+      if (ACL_DETAIL.policies[serialNumber]) {
+        var policyId = ACL_DETAIL.policies[serialNumber]
 
-    // Build Table Row
-    var newRow = $("<tr>").appendTo(selectedDevicesTable).attr("data-serial", serialNumber)
+        // Checkbox HTML - Checked
+        var checkboxHtml = '<div class="form-group form-check mt-1"><input id="cb-'+entry.serialNumber+'" type="checkbox" checked="checked" class="form-check-input" data-policyid="'+policyId+'" name="selectedDevice" value="'+entry.serialNumber+'"></div>'
+      }
+      else {
+        var policyId = null
+        // Checkbox HTML - Not Checked
+        var checkboxHtml = '<div class="form-group form-check mt-1"><input id="cb-'+entry.serialNumber+'" type="checkbox" class="form-check-input" data-policyid="'+policyId+'" name="selectedDevice" value="'+entry.serialNumber+'"></div>'
+      }
 
-    if (policyId != null){
-      $("<td>").html('<div class="form-group form-check mt-1"><input id="cb-'+serialNumber+'" type="checkbox" class="form-check-input" data-policyid="'+policyId+'" name="selectedDevice" value="'+entry.serialNumber+'"></div>').appendTo(newRow)
-      $("#cb-"+serialNumber).attr('checked','checked')
+    var data = {
+      checkboxInput: checkboxHtml,
+      fabricName: entry.fabricName,
+      displayName: entry.displayName,
+      model: entry.model,
+      serialNumber: entry.serialNumber,
+      switchRole: entry.switchRole,
+      release: entry.release,
+      policyId: policyId
     }
-    else {
-      $("<td>").html('<div class="form-group form-check mt-1"><input type="checkbox" class="form-check-input" name="selectedDevice" value="'+entry.serialNumber+'"></div>').appendTo(newRow)
-    }
-
-    $("<td>").text(entry.fabricName).appendTo(newRow)
-    $("<td>").text(entry.displayName).appendTo(newRow)
-    $("<td>").text(entry.model).appendTo(newRow)
-    $("<td>").text(entry.serialNumber).appendTo(newRow)
-    $("<td>").text(entry.switchRole).appendTo(newRow)
-    $("<td>").text(entry.release).appendTo(newRow)
-    $("<td>").text(policyId).appendTo(newRow)
-    $("<td>").text('n/a').appendTo(newRow)
-
+    var newRow = selectedDevicesTable.row.add(data).draw().node()
   })
+
+
+
+  // selectedDevicesTable.find("tbody").empty()
+  // $.each(FABRIC_INVENTORY, function( serialNumber, entry){
+  //   // Determine poliycId
+  //   if (ACL_DETAIL.policies[serialNumber]) {
+  //     policyId = ACL_DETAIL.policies[serialNumber]
+  //   }
+  //   else {
+  //     policyId = null
+  //   }
+  //
+  //   // Build Table Row
+  //   var newRow = $("<tr>").appendTo(selectedDevicesTable).attr("data-serial", serialNumber)
+  //
+  //   if (policyId != null){
+  //     $("<td>").html('<div class="form-group form-check mt-1"><input id="cb-'+serialNumber+'" type="checkbox" class="form-check-input" data-policyid="'+policyId+'" name="selectedDevice" value="'+entry.serialNumber+'"></div>').appendTo(newRow)
+  //     $("#cb-"+serialNumber).attr('checked','checked')
+  //   }
+  //   else {
+  //     $("<td>").html('<div class="form-group form-check mt-1"><input type="checkbox" class="form-check-input" name="selectedDevice" value="'+entry.serialNumber+'"></div>').appendTo(newRow)
+  //   }
+  //
+  //   $("<td>").text(entry.fabricName).appendTo(newRow)
+  //   $("<td>").text(entry.displayName).appendTo(newRow)
+  //   $("<td>").text(entry.model).appendTo(newRow)
+  //   $("<td>").text(entry.serialNumber).appendTo(newRow)
+  //   $("<td>").text(entry.switchRole).appendTo(newRow)
+  //   $("<td>").text(entry.release).appendTo(newRow)
+  //   $("<td>").text(policyId).appendTo(newRow)
+  //   $("<td>").text('n/a').appendTo(newRow)
+  //
+  // })
 
 
   // // Copy Template
@@ -848,22 +879,37 @@ $(document).ready(function(){
     stateSave: true,
     rowId: function(entry){return "acl-"+entry.position},
     columns: [
-            { data: "button", orderable: false },
-            { data: "position" },
-            { data: "aclType" },
-            { data: "remarks" },
-            { data: "aclProtocol" },
-            { data: "sourceIpMask" },
-            { data: "sourceOperator" },
-            { data: "sourcePortStart" },
-            { data: "sourcePortStop" },
-            { data: "destIpMask" },
-            { data: "destOperator" },
-            { data: "destPortStart" },
-            { data: "destPortStop" },
-            { data: "extra" }
-        ]
+      { data: "button", orderable: false },
+      { data: "position" },
+      { data: "aclType" },
+      { data: "remarks" },
+      { data: "aclProtocol" },
+      { data: "sourceIpMask" },
+      { data: "sourceOperator" },
+      { data: "sourcePortStart" },
+      { data: "sourcePortStop" },
+      { data: "destIpMask" },
+      { data: "destOperator" },
+      { data: "destPortStart" },
+      { data: "destPortStop" },
+      { data: "extra" }
+    ]
   });
+
+  $('#selectedDevicesTable').DataTable({
+    stateSave: true,
+    rowId: function(entry){return "sn-"+entry.serialNumber},
+    columns: [
+      { data: "checkboxInput", orderable: false },
+      { data: "fabricName" },
+      { data: "displayName" },
+      { data: "model" },
+      { data: "serialNumber" },
+      { data: "switchRole" },
+      { data: "release" },
+      { data: "policyId" }
+    ]
+  })
 
   // // Keep open tab on refresh
   // $('a[data-toggle="tab"]').on('show.bs.tab', function(e) {
