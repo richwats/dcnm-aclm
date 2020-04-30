@@ -43,7 +43,8 @@ function clearSession(){
   resp = aclmApiWrapper("delete","/session", null, null)
 
   // Clear local storage
-  localStorage.clear()
+  localStorage.removeItem('SELECTED_FABRIC')
+  localStorage.removeItem('SELECTED_ACL')
 
   // Reload Window
   location.reload()
