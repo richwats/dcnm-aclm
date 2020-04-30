@@ -878,6 +878,9 @@ $(document).ready(function(){
     order: [[ 1, "asc" ]],
     stateSave: true,
     rowId: function(entry){return "acl-"+entry.position},
+    drawCallback: function(settings){
+      feather.replace()
+    },
     columns: [
       { data: "button", orderable: false },
       { data: "position" },
@@ -937,7 +940,6 @@ $(document).ready(function(){
   });
 
 
-
   $('#selectFabricForm').submit(function(e){
     // Stop form from submitting normally
     e.preventDefault();
@@ -945,6 +947,9 @@ $(document).ready(function(){
     //console.log($(this).serialize())
     var fabricSelector = $("#selectFabric")
     console.log("[Select Fabric Form] Selected Fabric: "+fabricSelector.val())
+
+    // Hide ACL Table
+    $('#aclTableDisplay').addClass('d-none')
 
     // Load ACLs for Selected Fabric
     loadAclsForFabric(fabricSelector.val())

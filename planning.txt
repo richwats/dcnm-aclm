@@ -26,8 +26,6 @@ To Do:
 
 - "host" type ACLs?
 
-- Investigate moving to datatables?
-
 - Deploy history shows source as "UNDERLAY"?
 
 DOCUMENT on sharepoint?
