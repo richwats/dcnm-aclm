@@ -887,7 +887,6 @@ class aclm():
 
         managedACL = self.ACLS[hash]
 
-
         deletedPolicies = []
         output = None
         if managedACL.status == "Applied":
@@ -902,9 +901,19 @@ class aclm():
 
             # # (Un)deploy Policies
             # self.deployPolicies(deletedPolicies)
-            output = self.postDeployPolicyList(deletedPolicies)
+            # output = self.postDeployPolicyList(deletedPolicies)
+            # output = self.deployPolicies(managedACL)
+
+        ## Lookup Policy Cache for Serial Number
+        outputCombined = {}
+        for policyId in deletedPolicies:
+            serialNumber = self.POLICY_CACHE[policyId]['serialNumber']
+            logging.debug("[aclm][deleteAclm] Deploying Pending Policies to Switch: {}".format(serialNumber))
+            output = self.postDeployFabricSwitch(serialNumber)
+            logging.debug("[aclm][deleteAclm] Output: {}".format(output))
+            outputCombined[serialNumber]= output
 
         # Remove from ACLS
         self.ACLS.pop(hash)
 
-        return {"deletedOk": hash, "deletedPolicies": deletedPolicies, "deployOutput": output}
+        return {"deletedOk": hash, "deletedPolicies": deletedPolicies, "deployOutput": outputCombined}

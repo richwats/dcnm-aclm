@@ -124,9 +124,6 @@ function consoleLog(input){
 
 function deployPolicies(){
   console.log("[deployPolicies] Policies to deploy: "+JSON.stringify(ACL_DETAIL.toDeploy))
-
-
-
   resp = aclmApiWrapper("post","/aclm/"+ACL_DETAIL.hash+"/deploy", null, updatePolicyStatus)
 }
 
@@ -281,11 +278,7 @@ function deleteAcl(hash){
   console.log("[deleteAcl] Delete ACL Hash: "+hash)
 
   // console.log("[deleteAclEntry] DELETE payload: "+JSON.stringify(payload))
-  resp = aclmApiWrapper("delete","/aclm/"+hash, null, refreshFabric)
-
-  if (resp){
-    $('#aclEntryModal').modal('hide')
-  }
+  resp = aclmApiWrapper("delete","/aclm/"+hash, null, updatePolicyStatus)
 
   // Clear Selected ACL
   SELECTED_ACL = null
@@ -358,7 +351,7 @@ function buildAclDetails(input){
   $('#deleteAclButton')
   .val(input.hash)
   .data('title','Delete ACL '+input.name)
-  .data('message','Please confirm you want to delete ACL '+input.name+'<br><br><i><b>WARNING:</b></i> This will automatically remove policies from assigned switches')
+  .data('message','Please confirm you want to delete ACL '+input.name+'<br><br><i><b>WARNING:</b></i> This will automatically remove policies from assigned switches and trigger deployment')
 
   // Build Edit ACL Name Modal
   var editAclName = $('#editAclName')
@@ -443,7 +436,7 @@ function buildAclDetails(input){
 
   var dataTable = $("#aclTable").DataTable()
   dataTable.clear()
-  $.each(input.acl.entries, function( position, entry){
+  $.each(ACL_DETAIL.acl.entries, function( position, entry){
     console.log("[buildAclDetails] "+position+": "+JSON.stringify(entry))
 
     buttonHtml = '<button type="button" onclick="buildEditAclModal('+position+')" class="btn btn-sm btn-primary mx-1" name="button"><i data-feather="edit-3"></i></button>'

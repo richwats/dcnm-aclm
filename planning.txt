@@ -15,10 +15,6 @@ To Do:
 
 - Load/Show/Edit Policy Description field
 
-- Remove policy status from devices list
-
-- Change Fabric - Clear/Hide Table as "Selected Fabric" no longer valid..
-
 - Delete ACLM doesn't trigger fabric deploy... it should
 
 - optimise process Policies
