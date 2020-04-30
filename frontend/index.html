@@ -92,10 +92,11 @@
           <!-- Content Window -->
           <div class="d-none w-100" id="aclTableDisplay">
             <nav class="navbar navbar-dark bg-secondary w-100 navbar-expand-lg">
-              <button type="button" class="btn btn-primary mr-2" data-toggle="modal" data-target="#editAclNameModal" name="editAclNameButton">
-                <i data-feather="edit-3" ></i>
+              <button type="button" class="btn btn-primary mr-2" data-toggle="modal" data-target="#editAclSettingsModal" name="editAclSettingsButton">
+                <i data-feather="settings" ></i>
               </button>
               <span class="navbar-brand mb-0 h1" id="aclNameSpan"></span>
+              <span class="navbar-text mb-0 mr-2" id="aclDescriptionSpan"></span>
               <ul class="navbar-nav mr-auto">
                 <li>
                   <button type="button" class="btn btn-primary mx-1" data-toggle="modal" data-target="#selectedDevicesModal" name="selectedDevicesButton">Selected Devices</button>
@@ -181,10 +182,16 @@
               <small id="newAclNameHelp" class="form-text text-muted">Name of the new ACL. This must be a single word up to 64 characters consisting of a-z, A-Z, 0-9 "-" and "_" characters.</small>
             </div>
             <div class="form-group">
+              <label for="editAclDescription">ACL Policy Description</label>
+              <input type="text" class="form-control" maxlength=255 id="newAclDescription" aria-describedby="newAclDescriptionHelp">
+              <small id="newAclDescriptionHelp" class="form-text text-muted">This is the description of the policy in DCNM.  If not set, the ACL name will be used.</small>
+            </div>
+            <div class="form-group">
               <label for="importedAclContent">Import ACL from CLI</label>
               <textarea class="form-control" id="importedAclContent" rows="10"></textarea>
               <small id="newAclNameHelp" class="form-text text-muted">Import ACL configuration from CLI.  Must start with "ip access-list XXXX".</small>
             </div>
+          </form>
           </form>
         </div>
         <div class="modal-footer">
@@ -196,29 +203,34 @@
     </div>
   </div>
 
-  <!-- Edit ACL Name Modal -->
-  <div class="modal fade" data-backdrop="static" id="editAclNameModal" tabindex="-1" role="dialog" aria-labelledby="editAclNameModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable" role="document">
+  <!-- Edit ACL Settings Modal -->
+  <div class="modal fade" data-backdrop="static" id="editAclSettingsModal" tabindex="-1" role="dialog" aria-labelledby="editAclSettingsModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="editAclNameModalTitle">Edit ACL Name</h5>
+          <h5 class="modal-title" id="editAclSettingsModalTitle">Edit ACL Settings</h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
         <div class="modal-body">
-          <form id="editAclNameForm">
+          <form id="editAclSettingsForm">
             <div class="form-group">
               <label for="editAclName">Edit ACL Group Name</label>
               <input type="text" class="form-control" maxlength=64 pattern="^[a-zA-Z0-9_\-]{1,64}$" id="editAclName" aria-describedby="editAclNameHelp">
               <small id="editAclNameHelp" class="form-text text-muted">This must be a single word to 64 characters consisting of a-z, A-Z, 0-9 "-" and "_" characters.</small>
+            </div>
+            <div class="form-group">
+              <label for="editAclDescription">Edit ACL Policy Description</label>
+              <input type="text" class="form-control" maxlength=255 id="editAclDescription" aria-describedby="editAclDescriptionHelp">
+              <small id="editAclDescriptionHelp" class="form-text text-muted">This is the description of the policy in DCNM.</small>
             </div>
           </form>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
           <!-- Onclick submit form -->
-          <button type="sumbit" form="editAclNameForm" class="btn btn-primary">Save changes</button>
+          <button type="sumbit" form="editAclSettingsForm" class="btn btn-primary">Save changes</button>
         </div>
       </div>
     </div>

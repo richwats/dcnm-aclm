@@ -11,7 +11,7 @@ class acl_entry():
 
     validName = "[a-zA-Z0-9_\-]{1,64}"
     validTypes = ['permit', 'deny', 'remark']
-    validProtocols = ['ip','tcp','udp']
+    validProtocols = ['ip','tcp','udp','icmp']
     #validProtocols = ['ahp','eigrp','esp','gre','icmp','igmp','ip','nos','ospf','pcp','pim','tcp','udf','udp']
     """
     <0-255>  A protocol number
@@ -41,7 +41,141 @@ class acl_entry():
     range        Match only packets in the range of port numbers
     """
 
-    validFlags = ['log']
+    """
+    bgp          Border Gateway Protocol (179)
+    chargen      Character generator (19)
+    cmd          Remote commands (rcmd, 514)
+    daytime      Daytime (13)
+    discard      Discard (9)
+    domain       Domain Name Service (53)
+    drip         Dynamic Routing Information Protocol (3949)
+    echo         Echo (7)
+    exec         Exec (rsh, 512)
+    finger       Finger (79)
+    ftp          File Transfer Protocol (21)
+    ftp-data     FTP data connections (20)
+    gopher       Gopher (70)
+    hostname     NIC hostname server (101)
+    ident        Ident Protocol (113)
+    irc          Internet Relay Chat (194)
+    klogin       Kerberos login (543)
+    kshell       Kerberos shell (544)
+    login        Login (rlogin, 513)
+    lpd          Printer service (515)
+    nntp         Network News Transport Protocol (119)
+    pim-auto-rp  PIM Auto-RP (496)
+    pop2         Post Office Protocol v2 (109)
+    pop3         Post Office Protocol v3 (110)
+    smtp         Simple Mail Transport Protocol (25)
+    sunrpc       Sun Remote Procedure Call (111)
+    tacacs       TAC Access Control System (49)
+    talk         Talk (517)
+    telnet       Telnet (23)
+    time         Time (37)
+    uucp         Unix-to-Unix Copy Program (540)
+    whois        Nicname (43)
+    www          World Wide Web (HTTP, 80)
+    """
+
+    validTcpPortNames = {
+    'bgp':179,
+    'chargen': 19,
+    'cmd': 514,
+    'daytime': 13,
+    'discard': 9,
+    'domain': 53,
+    'drip': 3949,
+    'echo': 7,
+    'exec': 512,
+    'finger': 79,
+    'ftp': 21,
+    'ftp-data': 20,
+    'gopher': 70,
+    'hostname': 101,
+    'ident': 113,
+    'irc': 194,
+    'klogin': 543,
+    'kshell': 544,
+    'login': 513,
+    'lpd': 515,
+    'nntp': 119,
+    'pim-auto-rp': 496,
+    'pop2': 109,
+    'pop3': 110,
+    'smtp': 25,
+    'sunrpc': 111,
+    'tacacs': 49,
+    'talk': 517,
+    'telnet': 23,
+    'time': 37,
+    'uucp': 540,
+    'whois': 43,
+    'www': 80
+    }
+
+    """
+    biff           Biff (mail notification, comsat, 512)
+    bootpc         Bootstrap Protocol (BOOTP) client (68)
+    bootps         Bootstrap Protocol (BOOTP) server (67)
+    discard        Discard (9)
+    dnsix          DNSIX security protocol auditing (195)
+    domain         Domain Name Service (DNS, 53)
+    echo           Echo (7)
+    isakmp         Internet Security Association and Key Management Protocol (500)
+    mobile-ip      Mobile IP registration (434)
+    nameserver     IEN116 name service (obsolete, 42)
+    netbios-dgm    NetBios datagram service (138)
+    netbios-ns     NetBios name service (137)
+    netbios-ss     NetBios session service (139)
+    non500-isakmp  Internet Security Association and Key Management Protocol (4500)
+    ntp            Network Time Protocol (123)
+    pim-auto-rp    PIM Auto-RP (496)
+    rip            Routing Information Protocol (router, in.routed, 520)
+    snmp           Simple Network Management Protocol (161)
+    snmptrap       SNMP Traps (162)
+    sunrpc         Sun Remote Procedure Call (111)
+    syslog         System Logger (514)
+    tacacs         TAC Access Control System (49)
+    talk           Talk (517)
+    tftp           Trivial File Transfer Protocol (69)
+    time           Time (37)
+    who            Who service (rwho, 513)
+    xdmcp          X Display Manager Control Protocol (177)
+    """
+
+    validUdpPortNames = {
+    'biff': 512,
+    'bootpc': 68,
+    'bootps': 67,
+    'discard': 9,
+    'dnsix': 195,
+    'domain': 53,
+    'echo': 7,
+    'isakmp': 500,
+    'mobile-ip': 434,
+    'nameserver': 42,
+    'netbios-dgm': 138,
+    'netbios-ns': 137,
+    'netbios-ss': 139,
+    'non500-isakmp': 4500,
+    'ntp': 123,
+    'pim-auto-rp': 496,
+    'rip': 520,
+    'snmp': 161,
+    'snmptrap': 162,
+    'sunrpc': 111,
+    'syslog': 514,
+    'tacacs': 49,
+    'talk': 517,
+    'tftp': 9,
+    'time': 37,
+    'who': 513,
+    'xdmcp': 177
+    }
+
+    ## Flags not used yet
+
+    validIpFlags = ['log']
     """
     dscp                  Match packets with given dscp value
     fragments             Check non-initial fragments
@@ -55,6 +189,107 @@ class acl_entry():
     udf                   User defined field match
     vlan                  Configure match based on vlan
     log                   Log matches against this entry
+    """
+
+    validTcpFlags = ['log']
+    """
+    ack                            Match on the ACK bit
+    dscp                           Match packets with given dscp value
+    established                    Match established connections
+    fin                            Match on the FIN bit
+    http-method                    Match packets based on http-method
+    packet-length                  Match packets based on layer 3 packet length
+    precedence                     Match packets with given precedence value
+    psh                            Match on the PSH bit
+    redirect                       Redirect to interface(s). Syntax example: redirect Ethernet1/1,Ethernet1/2,port-channel1
+    rst                            Match on the RST bit
+    set-erspan-dscp                Syntax: set-erspan-dscp; Set ERSPAN outer IP DSCP value <1-63>
+    set-erspan-gre-proto           Syntax: set-erspan-gre-proto; Set ERSPAN GRE protocol <1-65535>
+    syn                            Match on the SYN bit
+    tcp-flags-mask (no abbrev)     Specify TCP Flags
+    tcp-option-length (no abbrev)  Specify TCP Options size
+    time-range                     Specify a time range
+    ttl                            Match Packets with a given TTL value
+    udf                            User defined field match
+    urg                            Match on the URG bit
+    vlan                           Configure match based on vlan
+    log                            Log matches against this entry
+    """
+
+    validUdpFlags = ['log']
+    """
+    dscp                  Match packets with given dscp value
+    nve                   VNI ID <0-16777215>
+    packet-length         Match packets based on layer 3 packet length
+    precedence            Match packets with given precedence value
+    redirect              Redirect to interface(s). Syntax example: redirect Ethernet1/1,Ethernet1/2,port-channel1
+    set-erspan-dscp       Syntax: set-erspan-dscp; Set ERSPAN outer IP DSCP value <1-63>
+    set-erspan-gre-proto  Syntax: set-erspan-gre-proto; Set ERSPAN GRE protocol <1-65535>
+    time-range            Specify a time range
+    ttl                   Match Packets with a given TTL value
+    udf                   User defined field match
+    vlan                  Configure match based on vlan
+    log                   Log matches against this entry
+    """
+
+    validIcmpFlags = []
+    """
+    <0-255>                      ICMP message type
+    administratively-prohibited  Administratively prohibited
+    alternate-address            Alternate address
+    conversion-error             Datagram conversion
+    dod-host-prohibited          Host prohibited
+    dod-net-prohibited           Net prohibited
+    dscp                         Match packets with given dscp value
+    echo                         Echo (ping)
+    echo-reply                   Echo reply
+    fragments                    Check non-initial fragments
+    general-parameter-problem    Parameter problem
+    host-isolated                Host isolated
+    host-precedence-unreachable  Host unreachable for precedence
+    host-redirect                Host redirect
+    host-tos-redirect            Host redirect for TOS
+    host-tos-unreachable         Host unreachable for TOS
+    host-unknown                 Host unknown
+    host-unreachable             Host unreachable
+    information-reply            Information replies
+    information-request          Information requests
+    mask-reply                   Mask replies
+    mask-request                 Mask requests
+    mobile-redirect              Mobile host redirect
+    net-redirect                 Network redirect
+    net-tos-redirect             Net redirect for TOS
+    net-tos-unreachable          Network unreachable for TOS
+    net-unreachable              Net unreachable
+    network-unknown              Network unknown
+    no-room-for-option           Parameter required but no room
+    option-missing               Parameter required but not present
+    packet-length                Match packets based on layer 3 packet length
+    packet-too-big               Fragmentation needed and DF set
+    parameter-problem            All parameter problems
+    port-unreachable             Port unreachable
+    precedence                   Match packets with given precedence value
+    precedence-unreachable       Precedence cutoff
+    protocol-unreachable         Protocol unreachable
+    reassembly-timeout           Reassembly timeout
+    redirect                     Redirect to interface(s). Syntax example: redirect Ethernet1/1,Ethernet1/2,port-channel1
+    redirect                     All redirects
+    router-advertisement         Router discovery advertisements
+    router-solicitation          Router discovery solicitations
+    set-erspan-dscp              Syntax: set-erspan-dscp; Set ERSPAN outer IP DSCP value <1-63>
+    set-erspan-gre-proto         Syntax: set-erspan-gre-proto; Set ERSPAN GRE protocol <1-65535>
+    source-quench                Source quenches
+    source-route-failed          Source route failed
+    time-exceeded                All time exceededs
+    time-range                   Specify a time range
+    timestamp-reply              Timestamp replies
+    timestamp-request            Timestamp requests
+    traceroute                   Traceroute
+    ttl                          Match Packets with a given TTL value
+    ttl-exceeded                 TTL exceeded
+    unreachable                  All unreachables
+    vlan                         Configure match based on vlan
+    log                          Log matches against this entry
     """
     # aclType = None
     # aclProtocol = None
@@ -301,8 +536,15 @@ class acl_group():
             content = content[1:]
             logging.debug("[acl_group][extractIPv4NetMask] Address: {}".format(address))
 
-        ## Network Subnet Detection
+        ## Network Subnet Detection - Subnet Mask
         elif ipfunctions.isIpV4Adddress(content[0]) and ipfunctions.isSubnetMask(content[1]):
+            logging.debug("[acl_group][extractIPv4NetMask] Address in Network|Mask Notation")
+            address = ipaddress.IPv4Network((content[0],content[1]))
+            content = content[2:]
+            logging.debug("[acl_group][extractIPv4NetMask] Address: {}".format(address))
+
+        ## Network Subnet Detection - Wildcard Mask
+        elif ipfunctions.isIpV4Adddress(content[0]) and ipfunctions.isWildcardMask(content[1]):
             logging.debug("[acl_group][extractIPv4NetMask] Address in Network|Mask Notation")
             address = ipaddress.IPv4Network((content[0],content[1]))
             content = content[2:]
@@ -320,7 +562,7 @@ class acl_group():
 
         return address,content
 
-    def extractPortRange(self, content):
+    def extractPortRange(self, content, aclType = None):
         # Get list of valid operators
         validOperators = acl_entry.validOperators
 
@@ -341,11 +583,23 @@ class acl_group():
 
             else:
                 ## Check Valid Port
-                if int(content[1]) <= 65535:
+                if type(content[1]) == int() and int(content[1]) <= 65535:
                     portStart = content[1]
                     portStop = None
                     content = content[2:]
                     logging.debug("[acl_group][extractPortRange] Source Port: {}".format(portStart))
+                elif aclType == "tcp" and content[1] != None:
+                    if content[1] in list(acl_entry.validTcpPortNames.keys()):
+                        content[1] = acl_entry.validTcpPortNames[content[1]]
+                    portStart = content[1]
+                    portStop = None
+                    content = content[2:]
+                elif aclType == "udp" and content[1] != None:
+                    if content[1] in list(acl_entry.validUdpPortNames.keys()):
+                        content[1] = acl_entry.validUdpPortNames[content[1]]
+                    portStart = content[1]
+                    portStop = None
+                    content = content[2:]
                 else:
                     raise Exception("Port Out of Valid Range")
 
@@ -562,10 +816,11 @@ class acl_group():
                     newEntry.extra = entry['extra']
                     logging.debug("[acl_group][fromJson] Extra: {}".format(newEntry.extra))
 
-                ### Sanity Check
-                if newEntry.sourceOperator == None and newEntry.destOperator == None:
-                    logging.error("[acl_group][fromJson] L4 Protocol Not Recognised - Skipping Line")
-                    raise Exception('L4 Protocol Not Recognised')
+                # ### Sanity Check
+                # 30-4-20 "permit tcp any any established" is valid
+                # if newEntry.sourceOperator == None and newEntry.destOperator == None:
+                #     logging.error("[acl_group][fromJson] L4 Protocol Not Recognised - Skipping Line")
+                #     raise Exception('L4 Protocol Not Recognised')
 
             else:
                 ## Type Not Found
@@ -723,7 +978,7 @@ class acl_group():
                 ### Source Operator
 
                 try:
-                    portOperator, portStart,portStop, content = self.extractPortRange(content)
+                    portOperator, portStart,portStop, content = self.extractPortRange(content, newEntry.aclProtocol)
                     newEntry.sourceOperator = portOperator
                     newEntry.sourcePortStart = portStart
                     newEntry.sourcePortStop = portStop
@@ -732,8 +987,9 @@ class acl_group():
                     else:
                         logging.debug("[acl_group][fromCli] No Source Port Filter Detected - Ignoring")
                 except Exception as e:
-                    logging.error("[acl_group][fromCli] Source Port Error: {} - Skipping Line".format(e))
-                    continue
+                    logging.debug("[acl_group][fromCli] Source Port Not Determined - Ignoring.  Error: {}".format(e))
+                    # logging.error("[acl_group][fromCli] Source Port Error: {} - Skipping Line".format(e))
+                    # continue
 
                 ## Destination Network
                 try:
@@ -745,7 +1001,7 @@ class acl_group():
 
                 ### Destination Operator
                 try:
-                    portOperator, portStart,portStop, content = self.extractPortRange(content)
+                    portOperator, portStart,portStop, content = self.extractPortRange(content, newEntry.aclProtocol)
                     newEntry.destOperator = portOperator
                     newEntry.destPortStart = portStart
                     newEntry.destPortStop = portStop
@@ -754,8 +1010,9 @@ class acl_group():
                     else:
                         logging.debug("[acl_group][fromCli] No Destination Port Filter Detected - Ignoring")
                 except Exception as e:
-                    logging.error("[acl_group][fromCli] Destination Port Error: {} - Skipping Line".format(e))
-                    continue
+                    logging.debug("[acl_group][fromCli] Destination Port Not Determined - Ignoring:  Error: {}".format(e))
+                    #logging.error("[acl_group][fromCli] Destination Port Error: {} - Skipping Line".format(e))
+                    #continue
 
                 ### Remaining
                 newEntry.extra = content

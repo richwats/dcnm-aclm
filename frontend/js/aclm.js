@@ -348,15 +348,20 @@ function buildAclDetails(input){
   // Set ACL Name
   $('#aclNameSpan').text(input.name)
 
+  // Set ACL Description
+  $('#aclDescriptionSpan').text(input.description)
+
   // Set deleteAclButton
   $('#deleteAclButton')
   .val(input.hash)
   .data('title','Delete ACL '+input.name)
   .data('message','Please confirm you want to delete ACL '+input.name+'<br><br><i><b>WARNING:</b></i> This will automatically remove policies from assigned switches and trigger deployment')
 
-  // Build Edit ACL Name Modal
+  // Build Edit ACL Settings Modal
   var editAclName = $('#editAclName')
   editAclName.val(input.name)
+  var editAclDescription = $('#editAclDescription')
+  editAclDescription.val(input.description)
 
   // Build Edit CLI Modal
   var aclCliContent = $('#aclCliContent')
@@ -436,7 +441,7 @@ function buildAclDetails(input){
   // $('#aclTable').DataTable().draw()
 
   var dataTable = $("#aclTable").DataTable()
-  dataTable.clear()
+  dataTable.clear().draw()
   $.each(ACL_DETAIL.acl.entries, function( position, entry){
     console.log("[buildAclDetails] "+position+": "+JSON.stringify(entry))
 
@@ -961,18 +966,37 @@ $(document).ready(function(){
     console.log("[Create New ACL Form] Form Submit Triggered")
     var newAclName = $("#newAclName").val()
     var importedAclContent = $("#importedAclContent").val()
+    var newAclDescription = $('#newAclDescription').val()
 
-    if (newAclName != null){
+    if (newAclName !=""){
       // Use Name
-      console.log("[Create New ACL Form] Name Changed. New Name: "+newAclName)
+      console.log("[Create New ACL Form] New ACL by Name: "+newAclName)
 
       payload = {
         'name': newAclName,
+        'description': newAclDescription,
         'acl': {'name': newAclName }
        }
       console.log("[Create New ACL Form] POST payload: "+JSON.stringify(payload))
 
       resp = aclmApiWrapper("post","/aclm/", payload, refreshFabric)
+
+      if (resp){
+        $('#createNewAclModal').modal('hide')
+      }
+    }
+    else {
+      // Use Content
+      console.log("[Create New ACL Form] New ACL by Content")
+
+      payload = {
+        // 'name': newAclName,
+        'description': newAclDescription,
+        'acl': {'cli': importedAclContent }
+       }
+      console.log("[Create New ACL Form] POST payload: "+JSON.stringify(payload))
+
+      resp = aclmApiWrapper("post","/aclm/?update=cli", payload, refreshFabric)
 
       if (resp){
         $('#createNewAclModal').modal('hide')
@@ -987,26 +1011,28 @@ $(document).ready(function(){
   });
 
   // Edit ACL Name Form
-  $('#editAclNameForm').submit(function(e){
+  $('#editAclSettingsForm').submit(function(e){
     // Stop form from submitting normally
     e.preventDefault();
-    console.log("[Edit ACL Name Form] Form Submit Triggered")
+    console.log("[Edit ACL Settings Form] Form Submit Triggered")
     var aclName = $("#editAclName").val()
+    var aclDescription = $("#editAclDescription").val()
 
-    if (aclName !== ACL_DETAIL.name){
-      // Name Changed
-      console.log("[Edit ACL Name Form] Name Changed. New Name: "+aclName)
+    if (aclName !== ACL_DETAIL.name || aclDescription !== ACL_DETAIL.description){
+      // Name or Description Changed
+      console.log("[Edit ACL Settings Form] ACL Settings. Name: "+aclName+" Description: "+aclDescription)
 
       var payload = ACL_DETAIL
       payload.name = aclName
       payload.acl.name = aclName
+      payload.description = aclDescription
 
-      console.log("[Edit ACL Name Form] PUT payload: "+JSON.stringify(payload))
+      console.log("[Edit ACL Settings Form] PUT payload: "+JSON.stringify(payload))
 
       resp = aclmApiWrapper("put","/aclm/"+payload.hash, payload, refreshFabric)
 
       if (resp){
-        $('#editAclNameModal').modal('hide')
+        $('#editAclSettingsModal').modal('hide')
       }
     }
   });

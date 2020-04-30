@@ -29,6 +29,20 @@ def isSubnetMask(input):
     else:
         return False
 
+def isWildcardMask(input):
+    # Check for network mask notation
+    # p1 = re.compile('^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$')
+    # m1 = p1.match(words[3])
+    p = re.compile('^(?:(255|127|63|31|15|7|3|1|0)[.]){3}(255|127|63|31|15|7|3|1)$')
+    m = p.match(input)
+
+    #print(m)
+
+    if m !=None:
+        return True
+    else:
+        return False
+
 def isIpV4AdddressMask(input):
     # Any handler
     if str(input) == "any":

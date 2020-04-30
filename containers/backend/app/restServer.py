@@ -240,6 +240,7 @@ selectFabricModel = api.model('selectFabricModel', {
 
 managedAclModel = api.model('aclmModel', {
     'name': fields.String,
+    'description': fields.String,
     'hash': fields.String,
     'status': fields.String,
     'policies': fields.Nested(policyModel, required=False, skip_none=True),
@@ -255,6 +256,7 @@ managedAclModel = api.model('aclmModel', {
 
 newAclModel = api.model('newAclModel', {
     'name': fields.String,
+    'description': fields.String,
     'hash': fields.String,
     'status': fields.String,
     'acl': fields.Nested(aclgModel, required=False, skip_none=True),
@@ -678,16 +680,27 @@ class newAclm(Resource):
     @api.doc(security='session')
     @api.marshal_with(newAclModel)
     @api.expect(newAclModel)
+    @api.param('update','Update by CLI or JSON', type=str)
     def post(self):
         """
         Create New Managed ACL
         """
         try:
+            parser = reqparse.RequestParser()
+            parser.add_argument('update', type=str, location='args')
+            args = parser.parse_args()
+            update = args['update']
+
             ## Build ACLM
             flask_aclm = buildAclmFromSession()
             logging.info("[newAclm][post] Create New Managed ACL")
             logging.debug("[newAclm][post] Payload: {}".format(api.payload))
-            managedACL = flask_aclm.createAclm(api.payload)
+
+            if update == "cli":
+                managedACL = flask_aclm.createAclmFromCli(api.payload)
+            else:
+                ## Assume JSON
+                managedACL = flask_aclm.createAclmFromJson(api.payload)
 
             session['PENDING'][managedACL.hash] = managedACL.toDict()
             logging.debug("[newAclm][post] Current Pending ACLs in Session: {}".format(session['PENDING']))
@@ -760,12 +773,18 @@ class aclmByHash(Resource):
             ## Get Updated Hash
             newHash = updatedACL['acl']['hash']
 
+            ## Check if policy description changed
+            if managedACL.description != updatedACL['description']:
+                forceUpdate = True
+            else:
+                forceUpdate = False
+
             ## Update Policies in DCNM
             if len(managedACL.policies) > 0:
-                flask_aclm.updatePolicies(managedACL)
+                flask_aclm.updatePolicies(managedACL, forceUpdate)
             elif managedACL.status == "NotApplied" and len(managedACL.toAttach) > 0:
                 ## New ACLM - waiting to attach!
-                flask_aclm.updatePolicies(managedACL)
+                flask_aclm.updatePolicies(managedACL, forceUpdate)
                 ## Remove from Pending if now Applied
                 if managedACL.status == "Applied":
                     session['PENDING'].pop(hash)
@@ -785,6 +804,7 @@ class aclmByHash(Resource):
                 del session['ACLM_OBJECTS'][hash]
                 session['ACLM_OBJECTS'][newHash] = {
                     'name': updatedACL['name'],
+                    'description': updatedACL['description'],
                     'hash': newHash,
                     'status': updatedACL['status'],
                     'toDeploy': list(managedACL.toDeploy),

@@ -8,12 +8,8 @@ To Do:
 - change namespace on backend from default
   - LOW
 
-- Load/Show/Edit Policy Description field
-
 - optimise process Policies
   - hash content first... process only on difference.
-
-- "host" type ACLs?
 
 - Deploy history shows source as "UNDERLAY"?
 

@@ -55,7 +55,7 @@ class managedACL():
     # toDetach = set()
     # toDeploy = set() #list of Policy-IDs to deploy
 
-    def __init__(self, name, hash, serialNumber, policyId, aclObject):
+    def __init__(self, name, hash, serialNumber, policyId, aclObject, description):
 
         ## Needs to be reset first!!!
         self.name = None
@@ -66,11 +66,13 @@ class managedACL():
         self.toAttach = set()
         self.toDetach = set()
         self.toDeploy = set()
+        self.description = None
 
-        logging.debug("[managedACL][__init__] {} {} {} {} {}".format(name, hash, serialNumber, policyId, aclObject))
+        logging.debug("[managedACL][__init__] {} {} {} {} {} {}".format(name, hash, serialNumber, policyId, aclObject, description))
         logging.debug("[managedACL][__init__] Before Policies: {}".format(self.policies))
         self.name = name
         self.hash = hash
+        self.description = description
         if serialNumber != None:
             self.policies[serialNumber] = policyId
             logging.debug("[managedACL][__init__] Add Policy: {} to Policy Dict: {}".format(policyId, self.policies))
@@ -138,6 +140,7 @@ class managedACL():
         """
         output = {
         "name": self.name,
+        "description": self.description,
         "hash": self.hash,
         "status": self.status,
         "policies": self.policies,
@@ -155,6 +158,7 @@ class managedACL():
         """
         Update Managed ACL from JSON Input
         - name
+        - description
         - acl
         - toAttach
         - toDetach
@@ -169,6 +173,13 @@ class managedACL():
                 self.acl.name = jsonInput['name']
                 self.acl.generateHash()
                 self.name = jsonInput['name']
+
+        ## Change Description
+        if 'description' in list(jsonInput.keys()):
+            if jsonInput['description'] != self.description:
+                self.description = jsonInput['description']
+                #self.acl.generateHash()
+                #self.name = jsonInput['name']
 
         ## Attach New Switch
         if len(jsonInput['toAttach']) > 0:
@@ -538,7 +549,7 @@ class aclm():
         output = self.dcnmApiWrapper("put", path, payload)
         return output
 
-    def buildPolicyPayload(self, serialNumber, content, priority = 500):
+    def buildPolicyPayload(self, serialNumber, content, description, priority = 500):
         """
         {
           "description": "REST API TEST POLICY",
@@ -556,7 +567,7 @@ class aclm():
         """
         #logging.debug("[aclm][buildPolicyPayload] DCNM_SOURCE: {}".format(self.DCNM_SOURCE))
         payload = {}
-        payload['description'] = "REST API TEST POLICY"
+        payload['description'] = description
         payload['serialNumber'] = serialNumber
         payload['entityType'] = "SWITCH"
         payload['entityName'] = "SWITCH"
@@ -604,6 +615,10 @@ class aclm():
 
         for output in jsonList:
             logging.debug("[aclm][processPolicies] Process Policy: {}".format(output))
+            ### Policy Description
+            policyDescription = output['description']
+
+            ### ACL Content
             aclContent = output['nvPairs']['CONF']
             logging.debug("[aclm][processPolicies] Policy Content: {}".format(aclContent))
 
@@ -635,7 +650,7 @@ class aclm():
             except KeyError:
                 ## Not instaniating new .policies dict !!!
 
-                newAclInst = managedACL(newName, newHash, output['serialNumber'], output['policyId'], newAcl)
+                newAclInst = managedACL(newName, newHash, output['serialNumber'], output['policyId'], newAcl, policyDescription)
                 # logging.debug("[aclm][processPolicies] New Managed ACL Object Policies: {}".format(newAclInst.policies))
                 self.ACLS[newHash] = newAclInst
                 logging.info("[aclm][processPolicies] Created new Managed ACL Object from Policy {}. Hash: {}".format(output['policyId'], newHash))
@@ -666,13 +681,15 @@ class aclm():
                 logging.debug("[aclm][updateDeployList] Hash {} not in ACLS".format(hash))
         return
 
-    def updatePolicies(self, managedACL ):
+    def updatePolicies(self, managedACL, forceUpdate = False ):
         """
         Update all policies with new content
         - Check if hash has changed?
         - if so, update, if not skip
         - Does NOT deploy policies!
         """
+        ## Force update
+        updatePolicies = forceUpdate
 
         ## Check toAttach
         if len(managedACL.toAttach) > 0:
@@ -681,7 +698,7 @@ class aclm():
             for serialNumber in managedACL.toAttach:
                 ## Add New Policy
                 #payload = self.buildPolicyPayload(serialNumber, managedACL.acl.toCli())
-                payload = self.buildPolicyPayload(serialNumber, managedACL.acl.cli)
+                payload = self.buildPolicyPayload(serialNumber, managedACL.acl.cli, managedACL.description)
                 output = self.postNewPolicy(payload)
                 logging.debug("[aclm][updatePolicies] New Policy Response: {}".format(output))
                 policyId = output['policyId']
@@ -744,12 +761,25 @@ class aclm():
         #     managedACL.status = "NotApplied"
         #     # session['PENDING'][managedACL.hash] = managedACL
 
+
+        # firstPolicyKey = next(iter(self.POLICY_CACHE))
+        # firstPolicy = self.POLICY_CACHE[firstPolicyKey]
+        # logging.debug("[aclm][updatePolicies] First Policy: {}".format(firstPolicy))
+        #
+        # if managedACL.description != firstPolicy['description']:
+        #     logging.info("[aclm][updatePolicies] Policy description field has changed.  Updating associated policies.")
+        #     updatePolicies = True
+
         ## Check Content Hash
         if managedACL.acl.hash != managedACL.hash:
             logging.info("[aclm][updatePolicies] ACL content has changed.  Updating associated policies.")
-            ## Content has changed - Push update
+            updatePolicies = True
 
-            ## Iterate Existing Switch Policies
+        if updatePolicies == False:
+            logging.info("[aclm][updatePolicies] Policy content has not changed.  Policies will not be updated.")
+            ## Content has changed - Push update
+        else:
+            ## Iterate Existing Switch Policies & Update Policies
             for serialNumber, policyId in managedACL.policies.items():
                 ## Get Policy
                 logging.debug("[aclm][updatePolicies] Serial Number: {}".format(serialNumber))
@@ -766,6 +796,7 @@ class aclm():
 
                 ## Update Policy
                 policy['nvPairs']['CONF'] =  str(updatedCli)
+                policy['description'] = str(managedACL.description)
                 logging.debug("[aclm][updatePolicies] Updated Policy: {}".format(policy))
                 output = self.putUpdatedPolicyById(policyId, policy)
 
@@ -773,9 +804,7 @@ class aclm():
                 logging.debug("[aclm][updatePolicies] Adding {} to toDeploy".format(policyId))
                 managedACL.toDeploy.add(policyId)
 
-            return
-        else:
-            logging.info("[aclm][updatePolicies] Policy content has not changed.  Policies will not be updated.")
+        return
 
     def deployPolicies(self, managedACL ):
         """
@@ -816,7 +845,7 @@ class aclm():
             else:
                 # self.ACLS[hash] = aclmDict
                 logging.debug("[aclm][buildPending] Building Pending ACL: {}".format(aclmDict))
-                newACL = self.createAclm(aclmDict)
+                newACL = self.createAclmFromJson(aclmDict)
             #
             # ### Set Transient Details from Pending Dict
             # logging.debug("[aclm][buildPending] New ACL Hash: {}".format(newACL.hash))
@@ -830,7 +859,56 @@ class aclm():
 
         return newACL.hash
 
-    def createAclm(self, jsonInput):
+    def createAclmFromCli(self, jsonInput):
+        """
+        Create New Managed ACL from CLI
+        """
+
+        # ## Reset ACL Dictionary
+        # self.ACLS = {}
+
+        newAclg = acl.acl_group()
+        newAclg.fromCli(jsonInput['acl']['cli'])
+        #newAclg.generateHash()
+
+        outputObj = json.loads(newAclg.json())
+        #logging.debug("[aclm][createAclmFromJson] JSON: {}".format(outputObj))
+        hash = outputObj['hash']
+        keylist = list(self.ACLS.keys())
+        logging.debug("[aclm][createAclmFromCli] Existing Managed Key List: {}".format(keylist))
+        logging.debug("[aclm][createAclmFromCli] New ACL Hash: {}".format(hash))
+
+        if jsonInput.get('description') == None or jsonInput.get('description') == "":
+            jsonInput['description'] = "ACL Policy for {}".format(outputObj['name'])
+
+        if hash in list(self.ACLS.keys()):
+            ## Entry already exists
+            raise Exception("Cannot create new Managed ACL - ACL already exists")
+            # logging.error("[aclm][createAclmFromJson] Cannot create new Managed ACL - ACL already exists. Returning existing ACL")
+            # return self.ACLS[hash]
+
+        else:
+            self.ACLS[hash] = managedACL(outputObj['name'], hash, None, None, newAclg, jsonInput['description'])
+
+            ### toAttach
+            if jsonInput.get('toAttach') and len(jsonInput['toAttach']) > 0:
+                self.ACLS[hash].toAttach = set(jsonInput['toAttach'])
+                logging.debug("[aclm][createAclmFromCli] Updating toAttach {}".format(self.ACLS[hash].toAttach))
+
+            ### toDetach
+            if jsonInput.get('toDetach') and len(jsonInput['toDetach']) > 0:
+                self.ACLS[hash].toDetach = set(jsonInput['toDetach'])
+                logging.debug("[aclm][createAclmFromCli] Updating toDetach {}".format(self.ACLS[hash].toDetach))
+
+            ### toDeploy
+            if jsonInput.get('toDeploy') and len(jsonInput['toDeploy']) > 0:
+                self.ACLS[hash].toDeploy = set(jsonInput['toDeploy'])
+                logging.debug("[aclm][createAclmFromCli] Updating toDeploy {}".format(self.ACLS[hash].toDeploy))
+
+            logging.info("[aclm][createAclmFromCli] Created new Managed ACL Object from JSON: {}".format(self.ACLS[hash]))
+            return self.ACLS[hash]
+
+    def createAclmFromJson(self, jsonInput):
         """
         Create New Managed ACL from JSON
         """
@@ -843,37 +921,40 @@ class aclm():
         #newAclg.generateHash()
 
         outputObj = json.loads(newAclg.json())
-        logging.debug("[aclm][createAclm] JSON: {}".format(outputObj))
+        logging.debug("[aclm][createAclmFromJson] JSON: {}".format(outputObj))
         hash = outputObj['hash']
         keylist = list(self.ACLS.keys())
-        logging.debug("[aclm][createAclm] Existing Managed Key List: {}".format(keylist))
-        logging.debug("[aclm][createAclm] New ACL Hash: {}".format(hash))
+        logging.debug("[aclm][createAclmFromJson] Existing Managed Key List: {}".format(keylist))
+        logging.debug("[aclm][createAclmFromJson] New ACL Hash: {}".format(hash))
+
+        if jsonInput.get('description') == None or jsonInput.get('description') == "":
+            jsonInput['description'] = "ACL Policy for {}".format(outputObj['name'])
 
         if hash in list(self.ACLS.keys()):
             ## Entry already exists
             raise Exception("Cannot create new Managed ACL - ACL already exists")
-            # logging.error("[aclm][createAclm] Cannot create new Managed ACL - ACL already exists. Returning existing ACL")
+            # logging.error("[aclm][createAclmFromJson] Cannot create new Managed ACL - ACL already exists. Returning existing ACL")
             # return self.ACLS[hash]
 
         else:
-            self.ACLS[hash] = managedACL(outputObj['name'], hash, None, None, newAclg)
+            self.ACLS[hash] = managedACL(outputObj['name'], hash, None, None, newAclg, jsonInput['description'])
 
             ### toAttach
             if jsonInput.get('toAttach') and len(jsonInput['toAttach']) > 0:
                 self.ACLS[hash].toAttach = set(jsonInput['toAttach'])
-                logging.debug("[aclm][createAclm] Updating toAttach {}".format(self.ACLS[hash].toAttach))
+                logging.debug("[aclm][createAclmFromJson] Updating toAttach {}".format(self.ACLS[hash].toAttach))
 
             ### toDetach
             if jsonInput.get('toDetach') and len(jsonInput['toDetach']) > 0:
                 self.ACLS[hash].toDetach = set(jsonInput['toDetach'])
-                logging.debug("[aclm][createAclm] Updating toDetach {}".format(self.ACLS[hash].toDetach))
+                logging.debug("[aclm][createAclmFromJson] Updating toDetach {}".format(self.ACLS[hash].toDetach))
 
             ### toDeploy
             if jsonInput.get('toDeploy') and len(jsonInput['toDeploy']) > 0:
                 self.ACLS[hash].toDeploy = set(jsonInput['toDeploy'])
-                logging.debug("[aclm][createAclm] Updating toDeploy {}".format(self.ACLS[hash].toDeploy))
+                logging.debug("[aclm][createAclmFromJson] Updating toDeploy {}".format(self.ACLS[hash].toDeploy))
 
-            logging.info("[aclm][createAclm] Created new Managed ACL Object from JSON: {}".format(self.ACLS[hash]))
+            logging.info("[aclm][createAclmFromJson] Created new Managed ACL Object from JSON: {}".format(self.ACLS[hash]))
             return self.ACLS[hash]
 
     def deleteAclm(self, hash):
