@@ -416,7 +416,7 @@ class dcnmLogon(Resource, ):
         session['DCNM_PASSWORD'] = password
         session['DCNM_FQDN'] = DCNM_MGMT_VIP
 
-        flask_aclm =  aclm(**{'DCNM_FQDN':DCNM_MGMT_VIP, 'DCNM_USERNAME':username, 'DCNM_PASSWORD':password})
+        flask_aclm =  aclm(**{'DCNM_FQDN':DCNM_MGMT_VIP, 'DCNM_USERNAME':username, 'DCNM_PASSWORD':password, 'DCNM_OFFLOADED': False})
         flask_aclm.dcnmLogon() # Required to set token?
 
         ## Set Expiry Timer & Token in Session
@@ -466,7 +466,7 @@ class dcnmLogon(Resource, ):
         session['DCNM_PASSWORD'] = password
         session['DCNM_FQDN'] = server
 
-        flask_aclm =  aclm(**{'DCNM_FQDN':server, 'DCNM_USERNAME':username, 'DCNM_PASSWORD':password})
+        flask_aclm =  aclm(**{'DCNM_FQDN':server, 'DCNM_USERNAME':username, 'DCNM_PASSWORD':password, 'DCNM_OFFLOADED': False})
         flask_aclm.dcnmLogon() # Required to set token?
 
         ## Set Expiry Timer & Token in Session

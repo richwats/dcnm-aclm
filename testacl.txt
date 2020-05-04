@@ -1,0 +1,49 @@
+ip access-list OUT2007
+  10 permit udp 128.250.5.101/32 eq ntp any
+  20 permit udp 128.250.5.105/32 eq ntp any
+  30 permit udp 128.250.66.5/32 eq domain any
+  40 permit udp 128.250.201.5/32 eq domain any
+  50 permit udp 172.20.8.0 0.0.0.63 eq bootps any
+  60 permit ip 172.24.128.0 0.0.0.255 any
+  70 permit ip 10.240.50.0 0.0.0.255 any
+  80 permit ip 128.250.146.64 0.0.0.63 any
+  90 permit ip 128.250.167.64 0.0.0.31 any
+  100 permit ip 128.250.10.0 0.0.0.255 any
+  110 permit ip 10.49.62.0 0.0.1.255 any
+  120 permit ip 10.240.61.0 0.0.0.127 any
+  130 permit udp 172.22.6.0 0.0.0.31 eq 88 any
+  140 permit udp 172.22.6.0 0.0.0.31 eq 464 any
+  150 permit udp 172.22.6.0 0.0.0.31 range 7000 7009 any
+  160 permit tcp 172.22.6.0 0.0.0.31 any established
+  170 permit udp 172.22.134.0 0.0.0.31 eq 88 any
+  180 permit udp 172.22.134.0 0.0.0.31 eq 464 any
+  190 permit udp 172.22.134.0 0.0.0.31 range 7000 7009 any
+  200 permit tcp 172.22.134.0 0.0.0.31 any established
+  210 permit tcp any any established
+  220 permit ip 172.23.24.0 0.0.7.255 any
+  230 permit ip 172.23.152.0 0.0.7.255 any
+  240 permit ip 172.17.4.0 0.0.0.31 any
+  250 permit ip 172.17.4.32 0.0.0.31 any
+  260 permit ip 172.25.250.0 0.0.0.255 any
+  270 permit ip 172.22.173.0 0.0.0.63 any
+  280 permit ip 172.20.135.0 0.0.0.63 any
+  290 permit ip 172.20.135.64 0.0.0.63 any
+  300 permit ip 172.20.63.128 0.0.0.63 any
+  310 permit ip 172.20.63.192 0.0.0.63 any
+  320 permit icmp any any
+  330 deny ip any any
+
+
+ip access-list OUT2007
+  10 permit udp host 128.250.5.101 eq 123 any
+  20 permit udp host 128.250.5.105 eq 123 any
+  30 permit udp host 128.250.66.5 eq 53 any
+  40 permit udp host 128.250.201.5 eq 53 any
+  50 permit udp 172.20.8.0 0.0.0.63 eq bootps any
+  60 permit ip 172.24.128.0/24 any
+  70 permit ip 10.240.50.0/24 any
+  100 permit ip 128.250.10.0/24 any
+  210 permit tcp any any
+  260 permit ip 172.25.250.0/24 any
+  330 deny ip any any
+
