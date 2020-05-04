@@ -269,7 +269,15 @@ function buildEditAclModal(position){
   $("#aclDestPort").val(aclDetails['destPortStart'])
   $("#aclDestPortStart").val(aclDetails['destPortStart'])
   $("#aclDestPortStop").val(aclDetails['destPortStop'])
-  $("#aclExtra").val(aclDetails['extra'])
+
+  // Extra
+  // console.log(typeof(aclDetails['extra']))
+  if (typeof(aclDetails['extra']) == "object"){
+    $("#aclExtra").val(aclDetails['extra'].join(" "))
+  }
+  else {
+    $("#aclExtra").val(aclDetails['extra'])
+  }
 
   // Delete Button
   $("#deleteAclEntryButton")
@@ -473,7 +481,7 @@ function buildAclDetails(input){
       destOperator: entry.destOperator,
       destPortStart: entry.destPortStart,
       destPortStop: entry.destPortStop,
-      extra: entry.extra
+      extra: entry.extra.join(" ")
     }
     var newRow = dataTable.row.add(data).draw().node()
     $(newRow).attr("data-position", position)

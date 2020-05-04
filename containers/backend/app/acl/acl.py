@@ -298,7 +298,7 @@ class acl_entry():
     log                   Log matches against this entry
     """
 
-    validIcmpFlags = []
+    validIcmpFlags = ['log']
     """
     <0-255>                      ICMP message type
     administratively-prohibited  Administratively prohibited
@@ -531,12 +531,16 @@ class acl_entry():
         else:
             msg = msg + " {}".format(dispDestIpMask)
 
-        ## Log
-        try:
-            if "log" in self.extra:
-                msg = msg + " {}".format("log")
-        except:
-            pass
+        # ## Extra
+        # try:
+        #     if "log" in self.extra:
+        #         msg = msg + " {}".format("log")
+        # except:
+        #     pass
+        if isinstance(self.extra, list):
+            msg = msg + " {}".format(" ".join(self.extra))
+        else:
+            msg = msg + " {}".format(self.extra)
 
         logging.debug("[acl_entry][toCli] Message Processing - Source & Destination: {}".format(msg))
 
