@@ -113,6 +113,42 @@ class acl_entry():
     'www': 80
     }
 
+    reverseTcpPortNames = {
+    179: 'bgp',
+    19: 'chargen',
+    514: 'cmd',
+    13: 'daytime',
+    9: 'discard',
+    53: 'domain',
+    3949: 'drip',
+    7: 'echo',
+    512: 'exec',
+    79: 'finger',
+    21: 'ftp',
+    20: 'ftp-data',
+    70: 'gopher',
+    101: 'hostname',
+    113: 'ident',
+    194: 'irc',
+    543: 'klogin',
+    544: 'kshell',
+    513: 'login',
+    515: 'lpd',
+    119: 'nntp',
+    496: 'pim-auto-rp',
+    109: 'pop2',
+    110: 'pop3',
+    25: 'smtp',
+    111: 'sunrpc',
+    49: 'tacacs',
+    517: 'talk',
+    23: 'telnet',
+    37: 'time',
+    540: 'uucp',
+    43: 'whois',
+    80: 'www'
+    }
+
     """
     biff           Biff (mail notification, comsat, 512)
     bootpc         Bootstrap Protocol (BOOTP) client (68)
@@ -167,10 +203,40 @@ class acl_entry():
     'syslog': 514,
     'tacacs': 49,
     'talk': 517,
-    'tftp': 9,
+    'tftp': 69,
     'time': 37,
     'who': 513,
     'xdmcp': 177
+    }
+
+    reverseUdpPortNames = {
+    512: 'biff',
+    68: 'bootpc',
+    67: 'bootps',
+    9: 'discard',
+    195: 'dnsix',
+    53: 'domain',
+    7: 'echo',
+    500: 'isakmp',
+    434: 'mobile-ip',
+    42: 'nameserver',
+    138: 'netbios-dgm',
+    137: 'netbios-ns',
+    139: 'netbios-ss',
+    4500: 'non500-isakmp',
+    123: 'ntp',
+    496: 'pim-auto-rp',
+    520: 'rip',
+    161: 'snmp',
+    162: 'snmptrap',
+    111: 'sunrpc',
+    514: 'syslog',
+    49: 'tacacs',
+    517: 'talk',
+    69: 'tftp',
+    37: 'time',
+    513: 'who',
+    177: 'xdmcp'
     }
 
     ## Flags not used yet
@@ -415,12 +481,41 @@ class acl_entry():
         else:
             dispDestIpMask = self.destIpMask
 
+
+        ## Use Defined Port Names
+        logging.debug("[acl_entry][toCli] Message Processing - ACL Protocol: {}".format(self.aclProtocol))
+        outputSourcePortStart = self.sourcePortStart
+        outputSourcePortStop = self.sourcePortStop
+        outputDestPortStart = self.destPortStart
+        outputDestPortStop = self.destPortStop
+        if self.aclProtocol == "tcp":
+            logging.debug("[acl_entry][toCli] Message Processing - TCP Ports: {} {} {} {}".format(self.sourcePortStart,self.sourcePortStop,self.destPortStart,self.destPortStop))
+            if self.sourcePortStart != None and self.reverseTcpPortNames.get(int(self.sourcePortStart)) != None:
+                outputSourcePortStart = self.reverseTcpPortNames.get(int(self.sourcePortStart))
+            if self.sourcePortStop != None and self.reverseTcpPortNames.get(int(self.sourcePortStop)) != None:
+                outputSourcePortStop = self.reverseTcpPortNames.get(int(self.sourcePortStop))
+            if self.destPortStart != None and self.reverseTcpPortNames.get(int(self.destPortStart)) != None:
+                outputDestPortStart = self.reverseTcpPortNames.get(int(self.destPortStart))
+            if self.destPortStop != None and self.reverseTcpPortNames.get(int(self.destPortStop)) != None:
+                outputDestPortStop = self.reverseTcpPortNames.get(int(self.destPortStop))
+        elif self.aclProtocol == "udp":
+            logging.debug("[acl_entry][toCli] Message Processing - UDP Ports: {} {} {} {}".format(self.sourcePortStart,self.sourcePortStop,self.destPortStart,self.destPortStop))
+            #logging.debug("[acl_entry][toCli] Message Processing - UDP Lookup: {} - {}".format(self.sourcePortStart, self.reverseUdpPortNames))
+            if self.sourcePortStart != None and self.reverseUdpPortNames.get(int(self.sourcePortStart)) != None:
+                outputSourcePortStart = self.reverseUdpPortNames.get(int(self.sourcePortStart))
+            if self.sourcePortStop != None and self.reverseUdpPortNames.get(int(self.sourcePortStop)) != None:
+                outputSourcePortStop = self.reverseUdpPortNames.get(int(self.sourcePortStop))
+            if self.destPortStart != None and self.reverseUdpPortNames.get(int(self.destPortStart)) != None:
+                outputDestPortStart = self.reverseUdpPortNames.get(int(self.destPortStart))
+            if self.destPortStop != None and self.reverseUdpPortNames.get(int(self.destPortStop)) != None:
+                outputDestPortStop = self.reverseUdpPortNames.get(int(self.destPortStop))
+
         ## Source Port Range
         if self.sourcePortStart != None and self.sourcePortStop != None:
-            msg = "{} {} {} range {} {}".format(self.aclType, self.aclProtocol, dispSourceIpMask, self.sourcePortStart, self.sourcePortStop )
+            msg = "{} {} {} range {} {}".format(self.aclType, self.aclProtocol, dispSourceIpMask, outputSourcePortStart, outputSourcePortStop )
         ## Source Port
         elif self.sourcePortStart != None and self.sourcePortStop == None:
-            msg = "{} {} {} {} {}".format(self.aclType, self.aclProtocol, dispSourceIpMask, self.sourceOperator, self.sourcePortStart )
+            msg = "{} {} {} {} {}".format(self.aclType, self.aclProtocol, dispSourceIpMask, self.sourceOperator, outputSourcePortStart )
         ## No Source Port
         else:
             msg = "{} {} {}".format(self.aclType, self.aclProtocol, dispSourceIpMask)
@@ -428,10 +523,10 @@ class acl_entry():
         logging.debug("[acl_entry][toCli] Message Processing - Source: {}".format(msg))
         ## Destination Port Range
         if self.destPortStart != None and self.destPortStop != None:
-            msg = msg + " {} range {} {}".format(dispDestIpMask, self.destPortStart, self.destPortStop)
+            msg = msg + " {} range {} {}".format(dispDestIpMask, outputDestPortStart, outputDestPortStop)
         ## Destination Port
         elif self.destPortStart != None and self.destPortStop == None:
-            msg = msg + " {} {} {}".format(dispDestIpMask, self.destOperator, self.destPortStart)
+            msg = msg + " {} {} {}".format(dispDestIpMask, self.destOperator, outputDestPortStart)
         ## No Destination Port
         else:
             msg = msg + " {}".format(dispDestIpMask)
@@ -778,6 +873,25 @@ class acl_group():
                     newEntry.extra = entry['extra']
                     logging.debug("[acl_group][fromJson] Extra: {}".format(newEntry.extra))
 
+            ## "icmp" entry handling
+            elif newEntry.aclProtocol == "icmp":
+                ## Validate Source IP Addresses
+                if ipfunctions.isIpV4AdddressMask(entry['sourceIpMask']):
+                    newEntry.sourceIpMask = entry['sourceIpMask']
+                else:
+                    raise Exception('Invalid Source IP/Mask')
+
+                ## Validate Destination IP Addresses
+                if ipfunctions.isIpV4AdddressMask(entry['destIpMask']):
+                    newEntry.destIpMask = entry['destIpMask']
+                else:
+                    raise Exception('Invalid Destination IP/Mask')
+
+                ### Remaining
+                if 'extra' in list(entry.keys()):
+                    newEntry.extra = entry['extra']
+                    logging.debug("[acl_group][fromJson] Extra: {}".format(newEntry.extra))
+
 
             elif newEntry.aclProtocol == "tcp" or newEntry.aclProtocol == "udp":
 
@@ -939,6 +1053,27 @@ class acl_group():
 
             ## "ip" entry handling
             if newEntry.aclProtocol == "ip":
+
+                try:
+                    address, content = self.extractIPv4NetMask(content)
+                    newEntry.sourceIpMask = str(address)
+                except Exception as e:
+                    logging.error("[acl_group][fromCli] Source Address Error: {} - Skipping Line".format(e))
+                    continue
+
+                try:
+                    address, content = self.extractIPv4NetMask(content)
+                    newEntry.destIpMask = str(address)
+                except Exception as e:
+                    logging.error("[acl_group][fromCli] Destination Address Error: {} - Skipping Line".format(e))
+                    continue
+
+                ### Remaining
+                newEntry.extra = content
+                logging.debug("[acl_group][fromCli] Extra: {}".format(newEntry.extra))
+
+            ## "icmp" entry handling
+            elif newEntry.aclProtocol == "icmp":
 
                 try:
                     address, content = self.extractIPv4NetMask(content)

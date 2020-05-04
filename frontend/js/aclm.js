@@ -248,12 +248,24 @@ function buildEditAclModal(position){
   $("#aclRemarks").val(aclDetails['remarks'])
   $("#aclProtocol").val(aclDetails['aclProtocol'])
   $("#aclSourceIpMask").val(aclDetails['sourceIpMask'])
-  $("#aclSourceOperator").val(aclDetails['sourceOperator'])
+  if (aclDetails['sourceOperator'] == null){
+    console.log("[buildEditAclModal] Setting Source Operator to 'null' ")
+    $("#aclSourceOperator").val('null')
+  }
+  else {
+    $("#aclSourceOperator").val(aclDetails['sourceOperator'])
+  }
   $("#aclSourcePort").val(aclDetails['sourcePortStart'])
   $("#aclSourcePortStart").val(aclDetails['sourcePortStart'])
   $("#aclSourcePortStop").val(aclDetails['sourcePortStop'])
   $("#aclDestIpMask").val(aclDetails['destIpMask'])
-  $("#aclDestOperator").val(aclDetails['destOperator'])
+  if (aclDetails['destOperator'] == null){
+    console.log("[buildEditAclModal] Setting Destination Operator to 'null' ")
+    $("#aclDestOperator").val('null')
+  }
+  else {
+    $("#aclDestOperator").val(aclDetails['destOperator'])
+  }
   $("#aclDestPort").val(aclDetails['destPortStart'])
   $("#aclDestPortStart").val(aclDetails['destPortStart'])
   $("#aclDestPortStop").val(aclDetails['destPortStop'])
