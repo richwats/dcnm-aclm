@@ -467,6 +467,11 @@ function buildAclDetails(input){
 
     buttonHtml = '<button type="button" onclick="buildEditAclModal('+position+')" class="btn btn-sm btn-primary mx-1" name="button"><i data-feather="edit-3"></i></button>'
 
+    //Join Extra Options
+    if (entry.extra != null && typeof(entry.extra) == "object" && entry.extra.length > 0) {
+      entry.extra = entry.extra.join(" ")
+    }
+
     var data = {
       button: buttonHtml,
       position: position,
@@ -481,7 +486,7 @@ function buildAclDetails(input){
       destOperator: entry.destOperator,
       destPortStart: entry.destPortStart,
       destPortStop: entry.destPortStop,
-      extra: entry.extra.join(" ")
+      extra: entry.extra
     }
     var newRow = dataTable.row.add(data).draw().node()
     $(newRow).attr("data-position", position)
